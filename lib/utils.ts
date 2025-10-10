@@ -13,3 +13,10 @@ export function formatBytes(bytes: number, decimals = 2) {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
+
+export function getInitials(name: string): string {
+  if (!name) return '';
+  const names = name.split(' ');
+  const initials = names.map(n => n[0]).join('');
+  return initials.substring(0, 2).toUpperCase();
+}

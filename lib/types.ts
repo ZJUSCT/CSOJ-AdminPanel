@@ -105,15 +105,15 @@ export interface TrendEntry {
 }
 
 export interface UserBestScore {
-    ID: number;
-    UserID: string;
-    ContestID: string;
-    ProblemID: string;
-    Score: number;
-    Performance: number;
-    SubmissionID: string;
-    SubmissionCount: number;
-    LastScoreTime: string;
+  ID: number;
+  UserID: string;
+  ContestID: string;
+  ProblemID: string;
+  Score: number;
+  Performance: number;
+  SubmissionID: string;
+  SubmissionCount: number;
+  LastScoreTime: string;
 }
 
 // Admin-specific types
