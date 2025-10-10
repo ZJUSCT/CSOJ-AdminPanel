@@ -4,7 +4,7 @@ import { useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import api from '@/lib/api';
 import { Submission, Problem } from '@/lib/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
@@ -13,8 +13,9 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { AdminSubmissionLogViewer } from '@/components/admin/admin-submission-log-viewer';
-import { Clock, Code, Hash, Layers, RefreshCcw, Server, Trash2, User, XCircle, CheckCircle, Ban } from 'lucide-react';
+import { Clock, Code, Hash, Layers, RefreshCcw, Server, Trash2, User, XCircle, CheckCircle, Ban, Edit } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { UpdateSubmissionDialog } from '@/components/admin/submission-actions';
 
 const fetcher = (url: string) => api.get(url).then(res => res.data.data);
 
@@ -72,7 +73,9 @@ function SubmissionDetails({ submissionId }: { submissionId: string }) {
       const endpoint = action === 'validity' ? `/submissions/${submissionId}/validity` : `/submissions/${submissionId}/${action}`;
       const method = action === 'validity' ? 'patch' : 'post';
       try {
-        await api[method](endpoint, payload);
+        // For delete, we use the delete method
+        const apiCall = action === 'delete' ? api.delete(endpoint) : api[method](endpoint, payload);
+        await apiCall;
         toast({ title: 'Success', description: `Action '${action}' completed successfully.` });
         mutate();
       } catch (err: any) {
@@ -110,6 +113,9 @@ function SubmissionDetails({ submissionId }: { submissionId: string }) {
                 : <Button variant="outline" onClick={() => handleAction('validity', { is_valid: true })}><CheckCircle /> Mark Valid</Button>
               }
               <Button variant="destructive" onClick={() => { if (confirm('Are you sure? This will delete the submission and its content permanently.')) handleAction('delete')}}><Trash2 /> Delete</Button>
+                <div className="col-span-2">
+                    <UpdateSubmissionDialog submission={submission} onSubmissionUpdated={mutate} />
+                </div>
             </CardContent>
           </Card>
         </div>

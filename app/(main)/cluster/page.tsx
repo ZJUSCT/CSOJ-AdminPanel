@@ -102,12 +102,12 @@ export default function ClusterStatusPage() {
                             </TableHeader>
                             <TableBody>
                                 {Object.values(cluster.nodes).map(node => {
-                                    const memoryUsage = node.memory > 0 ? (node.used_memory / node.memory) * 100 : 0;
+                                    const usedCoresCount = node.used_cores?.filter(Boolean).length ?? '?';
                                     return (
                                         <TableRow key={node.name}>
                                             <TableCell className="font-medium flex items-center gap-2"><Server /> {node.name}</TableCell>
                                             <TableCell>{node.is_paused ? 'Paused' : 'Active'}</TableCell>
-                                            <TableCell className="font-mono flex items-center gap-2"><Cpu /> ? / {node.cpu}</TableCell>
+                                            <TableCell className="font-mono flex items-center gap-2"><Cpu /> {usedCoresCount} / {node.cpu}</TableCell>
                                             <TableCell>
                                                 <div className="flex items-center gap-2">
                                                     <MemoryStick />

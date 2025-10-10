@@ -52,7 +52,9 @@ export interface Problem {
 
 
 export interface Container {
-  id: string;
+  ID: string; // Backend sends uppercase ID for this model
+  id: string; // API sends lowercase
+  CreatedAt: string;
   submission_id: string;
   user_id: string;
   image: string;
@@ -124,6 +126,7 @@ export interface NodeState {
     docker: string;
     used_memory: number;
     is_paused: boolean;
+    used_cores: boolean[];
 }
 
 export interface ClusterState {

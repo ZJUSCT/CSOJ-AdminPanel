@@ -8,6 +8,7 @@ import {
     FileCode,
     Trophy,
     BookCopy,
+    Package,
 } from "lucide-react"
 import { cn } from "@/lib/utils";
 
@@ -15,6 +16,7 @@ const routes = [
     { href: "/cluster", label: "Cluster", icon: Server },
     { href: "/users", label: "Users", icon: Users },
     { href: "/submissions", label: "Submissions", icon: FileCode },
+    { href: "/containers", label: "Containers", icon: Package },
     { href: "/contests", label: "Contests", icon: Trophy },
     { href: "/problems", label: "Problems", icon: BookCopy },
 ];

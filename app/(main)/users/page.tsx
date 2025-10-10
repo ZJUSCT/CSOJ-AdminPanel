@@ -1,12 +1,12 @@
 "use client"
-import { Suspense } from "react"
+import { Suspense, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import useSWR from 'swr';
 import api from '@/lib/api';
 import { User, UserBestScore, ScoreHistoryPoint } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal } from "lucide-react"
+import { MoreHorizontal, History } from "lucide-react"
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -16,6 +16,7 @@ import { getInitials } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import Link from "next/link";
+import { Input } from "@/components/ui/input";
 
 const fetcher = (url: string) => api.get(url).then(res => res.data.data);
 
@@ -82,10 +83,66 @@ function UserList() {
   );
 }
 
+function UserContestHistory({ userId }: { userId: string }) {
+    const [contestId, setContestId] = useState('');
+    const [submittedContestId, setSubmittedContestId] = useState('');
+
+    const { data: history, isLoading } = useSWR<ScoreHistoryPoint[]>(
+        submittedContestId ? `/users/${userId}/history?contest_id=${submittedContestId}` : null,
+        fetcher
+    );
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        setSubmittedContestId(contestId);
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Contest Score History</CardTitle>
+                <CardDescription>View a user's score progression over time for a specific contest.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <form onSubmit={handleSubmit} className="flex gap-2 mb-4">
+                    <Input
+                        placeholder="Enter Contest ID..."
+                        value={contestId}
+                        onChange={(e) => setContestId(e.target.value)}
+                    />
+                    <Button type="submit">Fetch History</Button>
+                </form>
+                {isLoading && <Skeleton className="h-48 w-full" />}
+                {history && (
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Time</TableHead>
+                                <TableHead>Problem ID</TableHead>
+                                <TableHead>Total Score After Change</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {history.map((h, i) => (
+                                <TableRow key={i}>
+                                    <TableCell>{format(new Date(h.time), 'Pp')}</TableCell>
+                                    <TableCell>{h.problem_id}</TableCell>
+                                    <TableCell>{h.score}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                )}
+                 {history?.length === 0 && <p className="text-muted-foreground text-center p-4">No history found for this contest.</p>}
+            </CardContent>
+        </Card>
+    );
+}
+
+
 function UserDetails({ userId }: { userId: string }) {
     const { data: user, isLoading: userLoading } = useSWR<User>(`/users/${userId}`, fetcher);
     const { data: scores, isLoading: scoresLoading } = useSWR<UserBestScore[]>(`/users/${userId}/scores`, fetcher);
-    // History is more complex as it's per-contest. We'll fetch it inside the tab.
 
     if (userLoading) return <Skeleton className="h-96 w-full" />;
 
@@ -104,8 +161,9 @@ function UserDetails({ userId }: { userId: string }) {
              </CardHeader>
           </Card>
           <Tabs defaultValue="scores">
-             <TabsList>
+             <TabsList className="grid w-full grid-cols-2">
                  <TabsTrigger value="scores">Best Scores</TabsTrigger>
+                <TabsTrigger value="history"><History/> Contest History</TabsTrigger>
              </TabsList>
              <TabsContent value="scores" className="mt-4">
                  <Card>
@@ -138,6 +196,9 @@ function UserDetails({ userId }: { userId: string }) {
                     </CardContent>
                  </Card>
              </TabsContent>
+                <TabsContent value="history" className="mt-4">
+                    <UserContestHistory userId={userId} />
+                </TabsContent>
           </Tabs>
         </div>
     )

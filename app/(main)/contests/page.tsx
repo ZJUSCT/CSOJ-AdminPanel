@@ -1,21 +1,18 @@
 "use client"
 import { useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense } from 'react';
 import useSWR from 'swr';
-import { Contest, Problem, LeaderboardEntry, TrendEntry } from '@/lib/types';
+import { Contest, LeaderboardEntry, TrendEntry, Problem } from '@/lib/types';
 import api from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
-import { Calendar, Clock, BookOpen, Trophy } from 'lucide-react';
+import { Calendar, Clock, Trophy, BarChart3, List } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { getInitials } from '@/lib/utils';
-// Note: EchartsTrendChart and UserProfileCard would need to be created/copied if desired for admin panel
-// For this implementation, we will stick to the basic leaderboard.
+import ReactECharts from 'echarts-for-react';
 
 const fetcher = (url: string) => api.get(url).then(res => res.data.data);
 
@@ -51,6 +48,47 @@ function ContestList() {
             ))}
         </div>
     );
+}
+
+function ContestTrendChart({ trendData, contest }: { trendData: TrendEntry[], contest: Contest }) {
+    const getOption = () => {
+        const series = trendData.map(user => ({
+            name: user.nickname,
+            type: 'line',
+            showSymbol: false,
+            data: user.history.map(h => [h.time, h.score]),
+        }));
+
+        const legendData = trendData.map(user => user.nickname);
+
+        return {
+            tooltip: { trigger: 'axis' },
+            legend: { data: legendData, bottom: 0 },
+            grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+            xAxis: { type: 'time' },
+            yAxis: { type: 'value' },
+            series: series,
+        };
+    };
+
+    return <ReactECharts option={getOption()} style={{ height: '500px' }} />;
+}
+
+function ContestTrendView({ contestId }: { contestId: string }) {
+    const { data: trendData, isLoading: trendLoading } = useSWR<TrendEntry[]>(`/contests/${contestId}/trend`, fetcher);
+    const { data: contest, isLoading: contestLoading } = useSWR<Contest>(`/contests/${contestId}`, fetcher);
+
+    if (trendLoading || contestLoading) return <Skeleton className="h-[500px] w-full" />;
+    if (!trendData || !contest) return <p>Could not load trend data.</p>;
+
+    return (
+        <Card>
+            <CardHeader><CardTitle>Score Trend</CardTitle><CardDescription>Score progression of the top users.</CardDescription></CardHeader>
+            <CardContent>
+                <ContestTrendChart trendData={trendData} contest={contest} />
+            </CardContent>
+        </Card>
+    )
 }
 
 function ContestLeaderboard({ contestId }: { contestId: string }) {
@@ -101,13 +139,16 @@ function ContestDetailView({ contestId, view }: { contestId: string, view: strin
                 <h1 className="text-3xl font-bold">{isLoading ? <Skeleton className="h-8 w-64" /> : contest?.name}</h1>
             </div>
             <Tabs value={view} className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="problems" asChild><Link href={`/contests?id=${contestId}&view=problems`}>Problems</Link></TabsTrigger>
-                    <TabsTrigger value="leaderboard" asChild><Link href={`/contests?id=${contestId}&view=leaderboard`}>Leaderboard</Link></TabsTrigger>
+                <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="problems" asChild><Link href={`/contests?id=${contestId}&view=problems`}><List /> Problems</Link></TabsTrigger>
+                    <TabsTrigger value="leaderboard" asChild><Link href={`/contests?id=${contestId}&view=leaderboard`}><Trophy/> Leaderboard</Link></TabsTrigger>
+                    <TabsTrigger value="trend" asChild><Link href={`/contests?id=${contestId}&view=trend`}><BarChart3 /> Trend</Link></TabsTrigger>
                 </TabsList>
             </Tabs>
             <div className="mt-6">
-                {view === 'leaderboard' ? <ContestLeaderboard contestId={contestId} /> : (
+                {view === 'leaderboard' && <ContestLeaderboard contestId={contestId} />}
+              {view === 'trend' && <ContestTrendView contestId={contestId} />}
+              {view === 'problems' && (
                   <Card>
                      <CardHeader><CardTitle>Problems in Contest</CardTitle></CardHeader>
                      <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

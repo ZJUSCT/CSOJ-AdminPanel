@@ -60,23 +60,107 @@ const editUserSchema = z.object({
   signature: z.string().optional(),
 });
 export function EditUserDialog({ user, onUserUpdated }: { user: User, onUserUpdated: () => void }) {
-    // Dialog logic here... (omitted for brevity, similar to CreateUser)
-    return <div className="w-full text-left" onClick={(e) => e.stopPropagation()}>Edit Profile</div>;
+    const [open, setOpen] = useState(false);
+    const { toast } = useToast();
+    const form = useForm<z.infer<typeof editUserSchema>>({
+        resolver: zodResolver(editUserSchema),
+        defaultValues: { nickname: user.nickname, signature: user.signature || '' },
+    });
+
+    const onSubmit = async (values: z.infer<typeof editUserSchema>) => {
+        try {
+            await api.patch(`/users/${user.id}`, values);
+            toast({ title: "User Updated", description: "User profile has been updated." });
+            onUserUpdated();
+            setOpen(false);
+        } catch (err: any) {
+            toast({ variant: "destructive", title: "Update Failed", description: err.response?.data?.message });
+        }
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild><div className="w-full text-left cursor-pointer relative flex select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50">Edit Profile</div></DialogTrigger>
+            <DialogContent>
+                <DialogHeader><DialogTitle>Edit Profile for @{user.username}</DialogTitle></DialogHeader>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                        <FormField control={form.control} name="nickname" render={({ field }) => (<FormItem><FormLabel>Nickname</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="signature" render={({ field }) => (<FormItem><FormLabel>Signature</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <DialogFooter><Button type="submit" disabled={form.formState.isSubmitting}>{form.formState.isSubmitting ? "Saving..." : "Save Changes"}</Button></DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
+    );
 }
 
 
 // --- Reset Password ---
 const resetPasswordSchema = z.object({ password: z.string().min(6, "Password must be at least 6 characters") });
 export function ResetPasswordDialog({ userId }: { userId: string }) {
-    // Dialog logic here... (omitted for brevity, similar to CreateUser)
-    return <div className="w-full text-left" onClick={(e) => e.stopPropagation()}>Reset Password</div>;
+    const [open, setOpen] = useState(false);
+    const { toast } = useToast();
+    const form = useForm<z.infer<typeof resetPasswordSchema>>({ resolver: zodResolver(resetPasswordSchema), defaultValues: { password: '' } });
+
+    const onSubmit = async (values: z.infer<typeof resetPasswordSchema>) => {
+        try {
+            await api.post(`/users/${userId}/reset-password`, values);
+            toast({ title: "Password Reset", description: "User's password has been successfully reset." });
+            setOpen(false);
+            form.reset();
+        } catch (err: any) {
+            toast({ variant: "destructive", title: "Reset Failed", description: err.response?.data?.message });
+        }
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild><div className="w-full text-left cursor-pointer relative flex select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50">Reset Password</div></DialogTrigger>
+            <DialogContent>
+                <DialogHeader><DialogTitle>Reset Password</DialogTitle></DialogHeader>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                        <FormField control={form.control} name="password" render={({ field }) => (<FormItem><FormLabel>New Password</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <DialogFooter><Button type="submit" disabled={form.formState.isSubmitting}>Set New Password</Button></DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
+    );
 }
 
 // --- Register for Contest ---
 const registerContestSchema = z.object({ contest_id: z.string().min(1, "Contest ID is required") });
 export function RegisterContestDialog({ userId }: { userId: string }) {
-    // Dialog logic here... (omitted for brevity, similar to CreateUser)
-    return <div className="w-full text-left" onClick={(e) => e.stopPropagation()}>Register for Contest</div>
+    const [open, setOpen] = useState(false);
+    const { toast } = useToast();
+    const form = useForm<z.infer<typeof registerContestSchema>>({ resolver: zodResolver(registerContestSchema), defaultValues: { contest_id: '' } });
+
+    const onSubmit = async (values: z.infer<typeof registerContestSchema>) => {
+        try {
+            await api.post(`/users/${userId}/register-contest`, values);
+            toast({ title: "Registration Successful", description: `User has been registered for contest ${values.contest_id}.` });
+            setOpen(false);
+            form.reset();
+        } catch (err: any) {
+            toast({ variant: "destructive", title: "Registration Failed", description: err.response?.data?.message });
+        }
+    };
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild><div className="w-full text-left cursor-pointer relative flex select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50">Register for Contest</div></DialogTrigger>
+            <DialogContent>
+                <DialogHeader><DialogTitle>Register User for Contest</DialogTitle></DialogHeader>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                        <FormField control={form.control} name="contest_id" render={({ field }) => (<FormItem><FormLabel>Contest ID</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <DialogFooter><Button type="submit" disabled={form.formState.isSubmitting}>Register</Button></DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
+    );
 }
 
 // --- Delete User ---
