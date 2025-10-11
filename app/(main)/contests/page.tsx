@@ -1,8 +1,8 @@
 "use client"
 import { useSearchParams } from 'next/navigation';
-import { Suspense } from 'react';
+import { Suspense, useState } from 'react';
 import useSWR from 'swr';
-import { Contest, LeaderboardEntry, TrendEntry, Problem } from '@/lib/types';
+import { Contest, LeaderboardEntry, TrendEntry } from '@/lib/types';
 import api from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,8 @@ import { format } from 'date-fns';
 import { Calendar, Clock, Trophy, BarChart3, List } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import ReactECharts from 'echarts-for-react';
+import EchartsTrendChart from '@/components/admin/echarts-trend-chart';
+import { Label } from '@/components/ui/label';
 
 const fetcher = (url: string) => api.get(url).then(res => res.data.data);
 
@@ -50,42 +51,46 @@ function ContestList() {
     );
 }
 
-function ContestTrendChart({ trendData, contest }: { trendData: TrendEntry[], contest: Contest }) {
-    const getOption = () => {
-        const series = trendData.map(user => ({
-            name: user.nickname,
-            type: 'line',
-            showSymbol: false,
-            data: user.history.map(h => [h.time, h.score]),
-        }));
-
-        const legendData = trendData.map(user => user.nickname);
-
-        return {
-            tooltip: { trigger: 'axis' },
-            legend: { data: legendData, bottom: 0 },
-            grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
-            xAxis: { type: 'time' },
-            yAxis: { type: 'value' },
-            series: series,
-        };
-    };
-
-    return <ReactECharts option={getOption()} style={{ height: '500px' }} />;
-}
-
 function ContestTrendView({ contestId }: { contestId: string }) {
-    const { data: trendData, isLoading: trendLoading } = useSWR<TrendEntry[]>(`/contests/${contestId}/trend`, fetcher);
-    const { data: contest, isLoading: contestLoading } = useSWR<Contest>(`/contests/${contestId}`, fetcher);
+    const [numUsers, setNumUsers] = useState(20);
 
-    if (trendLoading || contestLoading) return <Skeleton className="h-[500px] w-full" />;
-    if (!trendData || !contest) return <p>Could not load trend data.</p>;
+    // Fetch the full leaderboard to determine the max number of participants for the slider.
+    const { data: leaderboardData, isLoading: leaderboardLoading } = useSWR<LeaderboardEntry[]>(`/contests/${contestId}/leaderboard`, fetcher);
+
+    // Fetch the trend data for the number of users selected by the slider.
+    const { data: trendData, isLoading: trendLoading } = useSWR<TrendEntry[]>(
+        `/contests/${contestId}/trend?maxnum=${numUsers}`,
+        fetcher
+    );
+
+    const maxUsers = leaderboardData?.length ?? 100;
+
+    if (leaderboardLoading) return <Skeleton className="h-[550px] w-full" />;
 
     return (
         <Card>
-            <CardHeader><CardTitle>Score Trend</CardTitle><CardDescription>Score progression of the top users.</CardDescription></CardHeader>
+            <CardHeader>
+                <CardTitle>Score Trend</CardTitle>
+                <CardDescription>Drag the slider to adjust the number of top users shown in the chart.</CardDescription>
+            </CardHeader>
             <CardContent>
-                <ContestTrendChart trendData={trendData} contest={contest} />
+                <div className="flex items-center space-x-4 mb-4 p-2 bg-muted rounded-md">
+                    <Label htmlFor="user-slider" className="min-w-fit text-sm">Top Users: <span className="font-bold text-primary text-base">{numUsers}</span></Label>
+                    <input
+                        id="user-slider"
+                        type="range"
+                        min="1"
+                        max={maxUsers}
+                        value={numUsers}
+                        onChange={(e) => setNumUsers(Number(e.target.value))}
+                        className="w-full h-2 bg-primary/20 rounded-lg appearance-none cursor-pointer dark:bg-primary/30"
+                    />
+                </div>
+                <div className="h-[500px]">
+                    {trendLoading ? <Skeleton className="h-full w-full" /> :
+                        trendData ? <EchartsTrendChart trendData={trendData} /> : <div className="text-center text-muted-foreground">Could not load trend data.</div>
+                    }
+                </div>
             </CardContent>
         </Card>
     )
@@ -140,27 +145,27 @@ function ContestDetailView({ contestId, view }: { contestId: string, view: strin
             </div>
             <Tabs value={view} className="w-full">
                 <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="problems" asChild><Link href={`/contests?id=${contestId}&view=problems`}><List /> Problems</Link></TabsTrigger>
-                    <TabsTrigger value="leaderboard" asChild><Link href={`/contests?id=${contestId}&view=leaderboard`}><Trophy/> Leaderboard</Link></TabsTrigger>
-                    <TabsTrigger value="trend" asChild><Link href={`/contests?id=${contestId}&view=trend`}><BarChart3 /> Trend</Link></TabsTrigger>
+                    <TabsTrigger value="problems" asChild><Link href={`/contests?id=${contestId}&view=problems`}>Problems</Link></TabsTrigger>
+                    <TabsTrigger value="leaderboard" asChild><Link href={`/contests?id=${contestId}&view=leaderboard`}>Leaderboard</Link></TabsTrigger>
+                    <TabsTrigger value="trend" asChild><Link href={`/contests?id=${contestId}&view=trend`}>Trend</Link></TabsTrigger>
                 </TabsList>
             </Tabs>
             <div className="mt-6">
                 {view === 'leaderboard' && <ContestLeaderboard contestId={contestId} />}
-              {view === 'trend' && <ContestTrendView contestId={contestId} />}
-              {view === 'problems' && (
-                  <Card>
-                     <CardHeader><CardTitle>Problems in Contest</CardTitle></CardHeader>
-                     <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                        {isLoading && [...Array(3)].map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
-                        {contest?.problem_ids.map(problemId => (
-                           <Card key={problemId}>
-                             <CardHeader><CardTitle className="text-base">{problemId}</CardTitle></CardHeader>
-                             <CardFooter><Link href={`/problems?id=${problemId}`}><Button size="sm">View Problem</Button></Link></CardFooter>
-                           </Card>
-                        ))}
-                     </CardContent>
-                  </Card>
+                {view === 'trend' && <ContestTrendView contestId={contestId} />}
+                {view === 'problems' && (
+                    <Card>
+                        <CardHeader><CardTitle>Problems in Contest</CardTitle></CardHeader>
+                        <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                            {isLoading && [...Array(3)].map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
+                            {contest?.problem_ids.map(problemId => (
+                                <Card key={problemId}>
+                                    <CardHeader><CardTitle className="text-base">{problemId}</CardTitle></CardHeader>
+                                    <CardFooter><Link href={`/problems?id=${problemId}`}><Button size="sm">View Problem</Button></Link></CardFooter>
+                                </Card>
+                            ))}
+                        </CardContent>
+                    </Card>
                 )}
             </div>
         </div>

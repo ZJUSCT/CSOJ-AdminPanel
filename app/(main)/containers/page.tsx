@@ -23,19 +23,19 @@ function ContainerDetails({ containerId }: { containerId: string }) {
 
     return (
         <div className="space-y-4 text-sm">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                 <div><strong>Container ID:</strong> <span className="font-mono">{container.id}</span></div>
                 <div><strong>Submission ID:</strong> <Link href={`/submissions?id=${container.submission_id}`} className="font-mono text-primary hover:underline">{container.submission_id}</Link></div>
                 <div><strong>User ID:</strong> <Link href={`/users?id=${container.user_id}`} className="font-mono text-primary hover:underline">{container.user_id}</Link></div>
                 <div><strong>Status:</strong> <SubmissionStatusBadge status={container.status} /></div>
                 <div><strong>Image:</strong> <span className="font-mono">{container.image}</span></div>
                 <div><strong>Exit Code:</strong> {container.exit_code}</div>
-                <div><strong>Started At:</strong> {format(new Date(container.started_at), 'Pp')}</div>
-                <div><strong>Finished At:</strong> {format(new Date(container.finished_at), 'Pp')}</div>
+                <div><strong>Started At:</strong> {container.started_at ? format(new Date(container.started_at), 'Pp') : 'N/A'}</div>
+                <div><strong>Finished At:</strong> {container.finished_at ? format(new Date(container.finished_at), 'Pp') : 'N/A'}</div>
             </div>
             <div>
                 <strong>Log File Path:</strong>
-                <pre className="mt-2 bg-muted p-2 rounded-md font-mono text-xs">{container.log_file_path}</pre>
+                <pre className="mt-2 bg-muted p-2 rounded-md font-mono text-xs whitespace-pre-wrap break-all">{container.log_file_path}</pre>
             </div>
         </div>
     )
@@ -92,7 +92,7 @@ function ContainerList() {
                                         <DialogTrigger asChild>
                                             <Button variant="outline" size="sm">Details</Button>
                                         </DialogTrigger>
-                                        <DialogContent>
+                                        <DialogContent className="sm:max-w-3xl">
                                             <DialogHeader>
                                                 <DialogTitle>Container Details</DialogTitle>
                                             </DialogHeader>

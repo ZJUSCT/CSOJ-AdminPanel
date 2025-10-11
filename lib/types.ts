@@ -84,6 +84,14 @@ export interface Submission {
   containers: Container[];
 }
 
+export interface PaginatedResponse<T> {
+  items: T[];
+  total_items: number;
+  total_pages: number;
+  current_page: number;
+  per_page: number;
+}
+
 export interface LeaderboardEntry {
   user_id: string;
   username: string;
