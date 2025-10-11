@@ -1,4 +1,3 @@
-// Consistent types for both User and Admin frontends
 export type Status = "Queued" | "Running" | "Success" | "Failed";
 
 export interface User {
@@ -134,7 +133,9 @@ export interface ConfigNode {
   name: string;
   cpu: number;
   memory: number;
-  docker: string;
+  docker: {
+    host: string;
+  };
 }
 
 // Represents the live state of a node, including usage.

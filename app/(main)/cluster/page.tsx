@@ -26,7 +26,7 @@ function NodeDetails({ clusterName, nodeName }: { clusterName: string, nodeName:
         <div className="space-y-4">
             <h3 className="font-semibold">{details.name}</h3>
             <div className="grid grid-cols-2 gap-4 text-sm">
-                <div><strong>Docker Host:</strong> <span className="font-mono">{details.docker}</span></div>
+                <div><strong>Docker Host:</strong> <span className="font-mono">{details.docker.host}</span></div>
                 <div><strong>Paused:</strong> {details.is_paused ? "Yes" : "No"}</div>
                 <div><strong>Total Memory:</strong> {formatBytes(details.memory * 1024 * 1024)}</div>
                 <div><strong>Used Memory:</strong> {formatBytes(details.used_memory * 1024 * 1024)}</div>
