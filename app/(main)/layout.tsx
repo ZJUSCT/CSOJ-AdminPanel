@@ -15,10 +15,27 @@ export default function AdminLayout({
                 <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
                     {children}
                 </main>
-                 <footer className="mt-auto border-t py-4">
-                    <div className="container mx-auto text-center text-sm text-muted-foreground">
-                        CSOJ Admin Panel
-                    </div>
+                <footer className="mt-auto border-t py-4">
+                  <div className="container mx-auto text-center text-sm text-muted-foreground">
+                    Powered by{" "}
+                    <a
+                      href="https://github.com/ZJUSCT/CSOJ"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-medium text-primary underline-offset-4 hover:underline"
+                    >
+                      ZJUSCT/CSOJ
+                    </a>{" "}
+                    &{" "}
+                    <a
+                      href="https://github.com/ZJUSCT/CSOJ-AdminPanel"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-medium text-primary underline-offset-4 hover:underline"
+                    >
+                      ZJUSCT/CSOJ-AdminPanel
+                    </a>
+                  </div>
                 </footer>
             </div>
         </div>

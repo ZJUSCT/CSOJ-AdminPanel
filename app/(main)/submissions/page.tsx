@@ -17,12 +17,15 @@ import { Clock, Code, Hash, Layers, RefreshCcw, Server, Trash2, User, XCircle, C
 import { Input } from '@/components/ui/input';
 import { UpdateSubmissionDialog } from '@/components/admin/submission-actions';
 import { PaginationControls } from '@/components/shared/pagination-controls';
+import { SubmissionTableActions } from '@/components/admin/submission-table-actions';
+import { RefreshIntervalSelector } from '@/components/shared/refresh-interval-selector';
 
 const fetcher = (url: string) => api.get(url).then(res => res.data.data);
 
 function SubmissionsList() {
 	const [page, setPage] = useState(1);
 	const [filters, setFilters] = useState({ user_query: '', problem_id: '', status: '' });
+	const [refreshInterval, setRefreshInterval] = useState(1000);
 
 	const queryParams = new URLSearchParams({
 		...filters,
@@ -31,7 +34,11 @@ function SubmissionsList() {
 	});
 	const query = queryParams.toString();
 
-	const { data, error, isLoading } = useSWR<PaginatedResponse<Submission>>(`/submissions?${query}`, fetcher, { refreshInterval: 5000 });
+	const { data, error, isLoading, mutate } = useSWR<PaginatedResponse<Submission>>(
+		`/submissions?${query}`,
+		fetcher,
+		{ refreshInterval: refreshInterval }
+	);
 
 	const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		setFilters({ ...filters, [e.target.name]: e.target.value });
@@ -47,15 +54,32 @@ function SubmissionsList() {
 				<CardDescription>Browse and filter all submissions in the system.</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-4">
-				<div className="flex flex-col md:flex-row gap-2">
-					<Input name="user_query" placeholder="Filter by User" onChange={handleFilterChange} />
-					<Input name="problem_id" placeholder="Filter by Problem ID" onChange={handleFilterChange} />
-					<Input name="status" placeholder="Filter by Status (e.g. Success)" onChange={handleFilterChange} />
+				<div className="flex flex-col md:flex-row gap-2 justify-between">
+					<div className="flex flex-col sm:flex-row gap-2 flex-grow">
+						<Input name="user_query" placeholder="Filter by User" onChange={handleFilterChange} />
+						<Input name="problem_id" placeholder="Filter by Problem ID" onChange={handleFilterChange} />
+						<Input name="status" placeholder="Filter by Status (e.g. Success)" onChange={handleFilterChange} />
+					</div>
+					<RefreshIntervalSelector
+						defaultValue={refreshInterval}
+						onIntervalChange={setRefreshInterval}
+					/>
 				</div>
 				{isLoading && !data ? <Skeleton className="h-64 w-full" /> :
 					<>
 						<Table>
-							<TableHeader><TableRow><TableHead>ID</TableHead><TableHead>Problem</TableHead><TableHead>User</TableHead><TableHead>Status</TableHead><TableHead>Score</TableHead><TableHead>Date</TableHead></TableRow></TableHeader>
+							<TableHeader>
+								<TableRow>
+									<TableHead className="w-[100px]">ID</TableHead>
+									<TableHead>Problem</TableHead>
+									<TableHead>User</TableHead>
+									<TableHead>Status</TableHead>
+									<TableHead>Score</TableHead>
+									<TableHead>Performance</TableHead>
+									<TableHead>Date</TableHead>
+									<TableHead className="text-right w-[240px]">Actions</TableHead>
+								</TableRow>
+							</TableHeader>
 							<TableBody>
 								{submissions?.map(s => (
 									<TableRow key={s.id}>
@@ -64,7 +88,11 @@ function SubmissionsList() {
 										<TableCell><Link href={`/users?id=${s.user_id}`} className="hover:underline">{s.user.nickname}</Link></TableCell>
 										<TableCell><SubmissionStatusBadge status={s.status} /></TableCell>
 										<TableCell>{s.score}</TableCell>
+										<TableCell>{s.performance?.toFixed(4)}</TableCell>
 										<TableCell>{format(new Date(s.CreatedAt), "Pp")}</TableCell>
+										<TableCell className="text-right">
+											<SubmissionTableActions submission={s} mutate={mutate} />
+										</TableCell>
 									</TableRow>
 								))}
 							</TableBody>
@@ -137,7 +165,9 @@ function SubmissionDetails({ submissionId }: { submissionId: string }) {
 							: <Button variant="outline" onClick={() => handleAction('validity', { is_valid: true })}><CheckCircle /> Mark Valid</Button>
 						}
 						<Button variant="destructive" onClick={() => { if (confirm('Are you sure? This will delete the submission and its content permanently.')) handleAction('delete') }}><Trash2 /> Delete</Button>
-						<UpdateSubmissionDialog submission={submission} onSubmissionUpdated={mutate} />
+						<UpdateSubmissionDialog submission={submission} onSubmissionUpdated={mutate}>
+							<Button variant="outline" className="w-full"><Edit /> Manual Override</Button>
+						</UpdateSubmissionDialog>
 					</CardContent>
 				</Card>
 			</div>

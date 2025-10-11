@@ -1,20 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Submission, Status } from "@/lib/types";
+import { Submission } from "@/lib/types";
 import api from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Edit } from "lucide-react";
-
 
 const updateSubmissionSchema = z.object({
     status: z.enum(["Queued", "Running", "Success", "Failed"]).optional(),
@@ -31,7 +29,15 @@ const updateSubmissionSchema = z.object({
 });
 
 
-export function UpdateSubmissionDialog({ submission, onSubmissionUpdated }: { submission: Submission, onSubmissionUpdated: () => void }) {
+export function UpdateSubmissionDialog({
+    submission,
+    onSubmissionUpdated,
+    children, // The trigger element
+}: {
+    submission: Submission,
+    onSubmissionUpdated: () => void,
+    children: React.ReactNode,
+}) {
     const [open, setOpen] = useState(false);
     const { toast } = useToast();
     const form = useForm<z.infer<typeof updateSubmissionSchema>>({
@@ -47,7 +53,17 @@ export function UpdateSubmissionDialog({ submission, onSubmissionUpdated }: { su
         const payload: any = {};
         if (values.status) payload.status = values.status;
         if (values.score !== undefined) payload.score = values.score;
-        if (values.info) payload.info = JSON.parse(values.info);
+
+        if (values.info) {
+             try {
+                payload.info = JSON.parse(values.info);
+            } catch (e) {
+                form.setError("info", { type: "manual", message: "Invalid JSON format." });
+                return;
+            }
+        } else {
+            payload.info = {};
+        }
 
         if (Object.keys(payload).length === 0) {
             toast({ variant: "destructive", title: "No changes", description: "You must provide at least one field to update." });
@@ -63,11 +79,21 @@ export function UpdateSubmissionDialog({ submission, onSubmissionUpdated }: { su
             toast({ variant: "destructive", title: "Update Failed", description: err.response?.data?.message });
         }
     }
+    
+    React.useEffect(() => {
+        if (open) {
+            form.reset({
+                status: submission.status,
+                score: submission.score,
+                info: JSON.stringify(submission.info, null, 2),
+            });
+        }
+    }, [open, submission, form]);
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" className="w-full"><Edit /> Manual Override</Button>
+                {children}
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>

@@ -57,6 +57,7 @@ export interface Container {
   CreatedAt: string;
   submission_id: string;
   user_id: string;
+  user: User;
   image: string;
   status: Status;
   exit_code: number;
