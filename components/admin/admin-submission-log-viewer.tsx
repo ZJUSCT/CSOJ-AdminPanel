@@ -1,36 +1,35 @@
 "use client";
 import { useState, useEffect, useRef, useMemo } from 'react';
 import useWebSocket, { ReadyState } from 'react-use-websocket';
-import { Problem, Submission } from '@/lib/types';
+import { Problem, Submission, Status } from '@/lib/types';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
 import useSWR from 'swr';
 import api from '@/lib/api';
 import { Skeleton } from '../ui/skeleton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import { AlertTriangle, WifiOff } from 'lucide-react';
 
 interface LogMessage {
     stream: 'stdout' | 'stderr' | 'info' | 'error';
     data: string;
 }
 
-const StaticLogViewer = ({ submissionId, containerId }: { submissionId: string, containerId: string }) => {
-    const textFetcher = (url: string) => api.get(url, { responseType: 'text' }).then(res => res.data);
-    const { data: logText, error, isLoading } = useSWR(`/submissions/${submissionId}/containers/${containerId}/log`, textFetcher);
+const ErrorDisplay = ({ message }: { message: string }) => (
+    <div className="flex flex-col items-center justify-center font-mono text-xs bg-muted rounded-md h-96 p-4 text-destructive">
+        <AlertTriangle className="h-8 w-8 mb-4" />
+        <p className="font-semibold">Failed to load logs</p>
+        <p>{message}</p>
+    </div>
+);
+
+const LogContent = ({ messages }: { messages: LogMessage[] }) => {
     const logContainerRef = useRef<HTMLDivElement>(null);
-
-    const messages: LogMessage[] = useMemo(() => {
-        if (!logText) return [];
-        return logText.split('\n').filter(Boolean).map((line: string) => {
-            try { return JSON.parse(line); } catch { return { stream: 'stdout', data: line }; }
-        });
-    }, [logText]);
-
-    useEffect(() => { logContainerRef.current?.scrollTo(0, logContainerRef.current.scrollHeight); }, [messages]);
+    useEffect(() => {
+        logContainerRef.current?.scrollTo(0, logContainerRef.current.scrollHeight);
+    }, [messages]);
 
     return (
         <div ref={logContainerRef} className="font-mono text-xs bg-muted rounded-md h-96 overflow-y-auto p-4">
-            {isLoading && <Skeleton className="h-full w-full" />}
-            {error && <p className="text-red-400">Failed to load log.</p>}
             {messages.map((msg, index) => (
                 <span key={index} className="whitespace-pre-wrap break-all">
                     {msg.stream === 'stderr' || msg.stream === 'error' ? (
@@ -46,45 +45,91 @@ const StaticLogViewer = ({ submissionId, containerId }: { submissionId: string, 
     );
 };
 
-const RealtimeLogViewer = ({ wsUrl, onStatusUpdate }: { wsUrl: string | null, onStatusUpdate: () => void }) => {
+const UnifiedLogViewer = ({ submissionId, containerId, containerStatus, wsUrl, onStatusUpdate }: {
+    submissionId: string;
+    containerId: string;
+    containerStatus: Status;
+    wsUrl: string | null;
+    onStatusUpdate: () => void;
+}) => {
+    const [mode, setMode] = useState<'http' | 'websocket' | 'error'>('http');
+    const [httpError, setHttpError] = useState<any>(null);
     const [messages, setMessages] = useState<LogMessage[]>([]);
-    const logContainerRef = useRef<HTMLDivElement>(null);
+
+    const textFetcher = (url: string) => api.get(url, { responseType: 'text' }).then(res => res.data);
+    const { data: logText, error: swrError, isLoading } = useSWR(
+        mode === 'http' ? `/submissions/${submissionId}/containers/${containerId}/log` : null,
+        textFetcher,
+        { shouldRetryOnError: false } // Prevent SWR from retrying on its own
+    );
+
     const { readyState, lastMessage } = useWebSocket(wsUrl, {
         shouldReconnect: (closeEvent) => closeEvent.code !== 1000,
-        onClose: onStatusUpdate });
+        onClose: onStatusUpdate,
+        retryOnError: false,
+        onOpen: () => setHttpError(null), // Clear previous HTTP error on successful WS connection
+    });
 
-    useEffect(() => { setMessages([]); }, [wsUrl]);
+    // Effect to handle HTTP result and decide on fallback
     useEffect(() => {
-        if (lastMessage?.data) { try { setMessages(prev => [...prev, JSON.parse(lastMessage.data)]); } catch { } }
-    }, [lastMessage]);
-    useEffect(() => { logContainerRef.current?.scrollTo(0, logContainerRef.current.scrollHeight); }, [messages]);
+        if (swrError) {
+            setHttpError(swrError);
+            if (containerStatus === 'Running') {
+                setMode('websocket'); // Fallback to WebSocket for running containers
+            } else {
+                setMode('error'); // Show error for completed containers
+            }
+        }
+    }, [swrError, containerStatus]);
 
-    const connectionStatus = {
+    // Effect to accumulate WebSocket messages
+    useEffect(() => {
+        if (mode === 'websocket' && lastMessage?.data) {
+            try {
+                setMessages(prev => [...prev, JSON.parse(lastMessage.data)]);
+            } catch { /* ignore malformed messages */ }
+        }
+    }, [lastMessage, mode]);
+
+    // Determine connection status text for WebSocket
+    const connectionStatus = useMemo(() => ({
         [ReadyState.CONNECTING]: "Connecting...",
         [ReadyState.OPEN]: "Live",
         [ReadyState.CLOSING]: "Closing...",
         [ReadyState.CLOSED]: "Disconnected",
         [ReadyState.UNINSTANTIATED]: "Idle",
-    }[readyState];
+    }[readyState]), [readyState]);
 
-    return (
-        <div className="relative">
-            <div className="absolute top-2 right-6 text-xs font-semibold">{connectionStatus}</div>
-            <div ref={logContainerRef} className="font-mono text-xs bg-muted rounded-md h-96 overflow-y-auto p-4">
-                {messages.map((msg, index) => (
-                    <span key={index} className="whitespace-pre-wrap break-all">
-                        {msg.stream === 'stderr' || msg.stream === 'error' ? (
-                            <span className="text-red-400">{msg.data}</span>
-                        ) : msg.stream === 'info' ? (
-                            <span className="text-blue-400">{msg.data}</span>
-                        ) : (
-                            <span className="text-foreground">{msg.data}</span>
-                        )}
-                    </span>
-                ))}
+    if (isLoading) return <Skeleton className="h-96 w-full" />;
+    if (mode === 'error') return <ErrorDisplay message={httpError?.message || "Could not connect via HTTP or WebSocket."} />;
+
+    // Display static logs if HTTP request was successful
+    if (mode === 'http' && logText) {
+        const staticMessages = logText.split('\n').filter(Boolean).map((line: string) => {
+            try { return JSON.parse(line); } catch { return { stream: 'stdout', data: line }; }
+        });
+        return <LogContent messages={staticMessages} />;
+    }
+
+    // Display WebSocket logs if in websocket mode
+    if (mode === 'websocket') {
+        return (
+            <div className="relative">
+                <div className="absolute top-2 right-6 text-xs font-semibold">{connectionStatus}</div>
+                {httpError && readyState === ReadyState.CONNECTING && (
+                     <div className="absolute top-8 right-6 text-xs text-muted-foreground p-2 bg-background/80 rounded-md">
+                        <p>HTTP failed. Retrying with WebSocket...</p>
+                     </div>
+                )}
+                {(readyState === ReadyState.CLOSED && messages.length === 0) &&
+                    <ErrorDisplay message="WebSocket connection failed." />
+                }
+                <LogContent messages={messages} />
             </div>
-        </div>
-    );
+        );
+    }
+
+    return <Skeleton className="h-96 w-full" />; // Fallback case
 };
 
 export function AdminSubmissionLogViewer({ submission, problem, onStatusUpdate }: { submission?: Submission, problem?: Problem, onStatusUpdate: () => void }) {
@@ -120,10 +165,13 @@ export function AdminSubmissionLogViewer({ submission, problem, onStatusUpdate }
                         </TabsList>
                         {submission.containers.map(c => (
                             <TabsContent key={c.id} value={c.id} className="mt-4">
-                                {c.status === 'Running' ?
-                                    <RealtimeLogViewer wsUrl={getWsUrl(c.id)} onStatusUpdate={onStatusUpdate} /> :
-                                    <StaticLogViewer submissionId={submission.id} containerId={c.id} />
-                                }
+                                <UnifiedLogViewer
+                                    submissionId={submission.id}
+                                    containerId={c.id}
+                                    containerStatus={c.status}
+                                    wsUrl={getWsUrl(c.id)}
+                                    onStatusUpdate={onStatusUpdate}
+                                />
                             </TabsContent>
                         ))}
                     </Tabs>
