@@ -1,149 +1,142 @@
 "use client";
 import { useState, useEffect, useRef, useMemo } from 'react';
 import useWebSocket, { ReadyState } from 'react-use-websocket';
-import { Problem, Submission, Status } from '@/lib/types';
+import { Problem, Submission } from '@/lib/types';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
 import useSWR from 'swr';
 import api from '@/lib/api';
 import { Skeleton } from '../ui/skeleton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { AlertTriangle, WifiOff } from 'lucide-react';
 
 interface LogMessage {
     stream: 'stdout' | 'stderr' | 'info' | 'error';
     data: string;
 }
 
-const ErrorDisplay = ({ message }: { message: string }) => (
-    <div className="flex flex-col items-center justify-center font-mono text-xs bg-muted rounded-md h-96 p-4 text-destructive">
-        <AlertTriangle className="h-8 w-8 mb-4" />
-        <p className="font-semibold">Failed to load logs</p>
-        <p>{message}</p>
-    </div>
-);
-
-const LogContent = ({ messages }: { messages: LogMessage[] }) => {
+const StaticLogViewer = ({ submissionId, containerId }: { submissionId: string, containerId: string }) => {
+    const textFetcher = (url: string) => api.get(url, { responseType: 'text' }).then(res => res.data);
+    const { data: logText, error, isLoading } = useSWR(`/submissions/${submissionId}/containers/${containerId}/log`, textFetcher);
     const logContainerRef = useRef<HTMLDivElement>(null);
-    useEffect(() => {
-        logContainerRef.current?.scrollTo(0, logContainerRef.current.scrollHeight);
+
+    const messages: LogMessage[] = useMemo(() => {
+        if (!logText) return [];
+        return logText.split('\n').filter(Boolean).map((line: string) => {
+            try { return JSON.parse(line); } catch { return { stream: 'stdout', data: line }; }
+        });
+    }, [logText]);
+
+    useEffect(() => { 
+        if (logContainerRef.current) {
+            logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+        }
     }, [messages]);
 
     return (
-        <div ref={logContainerRef} className="font-mono text-xs bg-muted rounded-md h-96 overflow-y-auto p-4">
-            {messages.map((msg, index) => (
-                <span key={index} className="whitespace-pre-wrap break-all">
-                    {msg.stream === 'stderr' || msg.stream === 'error' ? (
-                        <span className="text-red-400">{msg.data}</span>
-                    ) : msg.stream === 'info' ? (
-                        <span className="text-blue-400">{msg.data}</span>
-                    ) : (
-                        <span className="text-foreground">{msg.data}</span>
-                    )}
-                </span>
-            ))}
+        <div className="relative">
+             <div className="absolute top-2 right-6 text-xs font-semibold flex items-center gap-2 z-10">
+                <span className="h-2 w-2 rounded-full bg-gray-400"></span>
+                Finished
+            </div>
+            <div ref={logContainerRef} className="font-mono text-xs bg-muted rounded-md h-96 overflow-y-auto p-4">
+                {isLoading && <Skeleton className="h-full w-full" />}
+                {error && <p className="text-red-400">Failed to load log.</p>}
+                {messages.map((msg, index) => (
+                    <span key={index} className="whitespace-pre-wrap break-all">
+                        {msg.stream === 'stderr' || msg.stream === 'error' ? (
+                            <span className="text-red-400">{msg.data}</span>
+                        ) : msg.stream === 'info' ? (
+                            <span className="text-blue-400">{msg.data}</span>
+                        ) : (
+                            <span className="text-foreground">{msg.data}</span>
+                        )}
+                    </span>
+                ))}
+            </div>
         </div>
     );
 };
 
-const UnifiedLogViewer = ({ submissionId, containerId, containerStatus, wsUrl, onStatusUpdate }: {
-    submissionId: string;
-    containerId: string;
-    containerStatus: Status;
-    wsUrl: string | null;
-    onStatusUpdate: () => void;
-}) => {
-    const [mode, setMode] = useState<'http' | 'websocket' | 'error'>('http');
-    const [httpError, setHttpError] = useState<any>(null);
+const RealtimeLogViewer = ({ wsUrl, onStatusUpdate }: { wsUrl: string | null, onStatusUpdate: () => void }) => {
     const [messages, setMessages] = useState<LogMessage[]>([]);
-
-    const textFetcher = (url: string) => api.get(url, { responseType: 'text' }).then(res => res.data);
-    const { data: logText, error: swrError, isLoading } = useSWR(
-        mode === 'http' ? `/submissions/${submissionId}/containers/${containerId}/log` : null,
-        textFetcher,
-        { shouldRetryOnError: false } // Prevent SWR from retrying on its own
-    );
+    const logContainerRef = useRef<HTMLDivElement>(null);
 
     const { readyState, lastMessage } = useWebSocket(wsUrl, {
         shouldReconnect: (closeEvent) => closeEvent.code !== 1000,
-        onClose: onStatusUpdate,
-        retryOnError: false,
-        onOpen: () => setHttpError(null), // Clear previous HTTP error on successful WS connection
+        reconnectInterval: 3000,
+        onClose: () => {
+            console.log('WebSocket closed. Refetching submission status.');
+            onStatusUpdate();
+        }
     });
 
-    // Effect to handle HTTP result and decide on fallback
+    useEffect(() => { setMessages([]); }, [wsUrl]);
+
     useEffect(() => {
-        if (swrError) {
-            setHttpError(swrError);
-            if (containerStatus === 'Running') {
-                setMode('websocket'); // Fallback to WebSocket for running containers
-            } else {
-                setMode('error'); // Show error for completed containers
-            }
+        if (lastMessage?.data) { 
+            try { 
+                setMessages(prev => [...prev, JSON.parse(lastMessage.data)]); 
+            } catch (e) {
+                console.error("Failed to parse WebSocket message:", lastMessage.data);
+            } 
         }
-    }, [swrError, containerStatus]);
+    }, [lastMessage]);
 
-    // Effect to accumulate WebSocket messages
-    useEffect(() => {
-        if (mode === 'websocket' && lastMessage?.data) {
-            try {
-                setMessages(prev => [...prev, JSON.parse(lastMessage.data)]);
-            } catch { /* ignore malformed messages */ }
+    useEffect(() => { 
+        if (logContainerRef.current) {
+            logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
         }
-    }, [lastMessage, mode]);
+    }, [messages]);
 
-    // Determine connection status text for WebSocket
-    const connectionStatus = useMemo(() => ({
-        [ReadyState.CONNECTING]: "Connecting...",
-        [ReadyState.OPEN]: "Live",
-        [ReadyState.CLOSING]: "Closing...",
-        [ReadyState.CLOSED]: "Disconnected",
-        [ReadyState.UNINSTANTIATED]: "Idle",
-    }[readyState]), [readyState]);
+    const connectionStatus = {
+        [ReadyState.CONNECTING]: { text: 'Connecting...', color: 'bg-yellow-500' },
+        [ReadyState.OPEN]: { text: 'Live', color: 'bg-green-500 animate-pulse' },
+        [ReadyState.CLOSING]: { text: 'Closing...', color: 'bg-yellow-500' },
+        [ReadyState.CLOSED]: { text: 'Disconnected', color: 'bg-red-500' },
+        [ReadyState.UNINSTANTIATED]: { text: 'Idle', color: 'bg-gray-500' },
+    }[readyState];
 
-    if (isLoading) return <Skeleton className="h-96 w-full" />;
-    if (mode === 'error') return <ErrorDisplay message={httpError?.message || "Could not connect via HTTP or WebSocket."} />;
-
-    // Display static logs if HTTP request was successful
-    if (mode === 'http' && logText) {
-        const staticMessages = logText.split('\n').filter(Boolean).map((line: string) => {
-            try { return JSON.parse(line); } catch { return { stream: 'stdout', data: line }; }
-        });
-        return <LogContent messages={staticMessages} />;
-    }
-
-    // Display WebSocket logs if in websocket mode
-    if (mode === 'websocket') {
-        return (
-            <div className="relative">
-                <div className="absolute top-2 right-6 text-xs font-semibold">{connectionStatus}</div>
-                {httpError && readyState === ReadyState.CONNECTING && (
-                     <div className="absolute top-8 right-6 text-xs text-muted-foreground p-2 bg-background/80 rounded-md">
-                        <p>HTTP failed. Retrying with WebSocket...</p>
-                     </div>
-                )}
-                {(readyState === ReadyState.CLOSED && messages.length === 0) &&
-                    <ErrorDisplay message="WebSocket connection failed." />
-                }
-                <LogContent messages={messages} />
+    return (
+        <div className="relative">
+            <div className="absolute top-2 right-6 text-xs font-semibold flex items-center gap-2 z-10">
+                <span className={`h-2 w-2 rounded-full ${connectionStatus.color}`}></span>
+                {connectionStatus.text}
             </div>
-        );
-    }
-
-    return <Skeleton className="h-96 w-full" />; // Fallback case
+            <div ref={logContainerRef} className="font-mono text-xs bg-muted rounded-md h-96 overflow-y-auto p-4">
+                {messages.length === 0 && readyState === ReadyState.OPEN && <p className="text-muted-foreground">Waiting for judge output...</p>}
+                {messages.map((msg, index) => (
+                    <span key={index} className="whitespace-pre-wrap break-all">
+                        {msg.stream === 'stderr' || msg.stream === 'error' ? (
+                            <span className="text-red-400">{msg.data}</span>
+                        ) : msg.stream === 'info' ? (
+                            <span className="text-blue-400">{msg.data}</span>
+                        ) : (
+                            <span className="text-foreground">{msg.data}</span>
+                        )}
+                    </span>
+                ))}
+            </div>
+        </div>
+    );
 };
 
 export function AdminSubmissionLogViewer({ submission, problem, onStatusUpdate }: { submission?: Submission, problem?: Problem, onStatusUpdate: () => void }) {
     const [selectedContainerId, setSelectedContainerId] = useState<string | null>(null);
 
+    // This effect automatically selects the most recent container log tab.
+    // It runs ONLY when a new container is added to the submission,
+    // providing an "auto-follow" behavior without preventing the user from
+    // manually viewing older logs.
     useEffect(() => {
         if (submission?.containers && submission.containers.length > 0) {
-            setSelectedContainerId(prev => prev ?? submission.containers[0].id);
-            const latestContainer = submission.containers[submission.containers.length - 1];
-            if(selectedContainerId !== latestContainer.id && latestContainer.status === "Running") {
-                setSelectedContainerId(latestContainer.id);
+            const lastContainer = submission.containers[submission.containers.length - 1];
+            // Only switch if the selected tab is not already the last one,
+            // to avoid unnecessary re-renders.
+            if (selectedContainerId !== lastContainer.id) {
+                setSelectedContainerId(lastContainer.id);
             }
         }
-    }, [submission?.containers, selectedContainerId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [submission?.containers.length]);
 
     if (!submission || !problem) return <Card><CardHeader><CardTitle>Live Log</CardTitle></CardHeader><CardContent><Skeleton className="h-96 w-full" /></CardContent></Card>;
 
@@ -154,28 +147,31 @@ export function AdminSubmissionLogViewer({ submission, problem, onStatusUpdate }
         return `${wsProtocol}//${host}/api/v1/ws/submissions/${submission.id}/containers/${containerId}/logs`;
     };
 
+    if (submission.containers.length === 0) {
+        return (
+            <div className="font-mono text-xs bg-muted rounded-md h-96 overflow-y-auto p-4 text-muted-foreground flex items-center justify-center">
+                Submission is in queue. No logs to display yet.
+            </div>
+        );
+    }
+
     return (
         <Card>
             <CardHeader><CardTitle>Live Log</CardTitle><CardDescription>Real-time output from the judge containers.</CardDescription></CardHeader>
             <CardContent>
-                {submission.containers.length === 0 ? <div className="text-muted-foreground">No containers for this submission yet.</div> :
-                    <Tabs value={selectedContainerId ?? ""} onValueChange={setSelectedContainerId} className="w-full">
-                        <TabsList>
-                            {submission.containers.map((c, i) => <TabsTrigger key={c.id} value={c.id}>Step {i + 1}</TabsTrigger>)}
-                        </TabsList>
-                        {submission.containers.map(c => (
-                            <TabsContent key={c.id} value={c.id} className="mt-4">
-                                <UnifiedLogViewer
-                                    submissionId={submission.id}
-                                    containerId={c.id}
-                                    containerStatus={c.status}
-                                    wsUrl={getWsUrl(c.id)}
-                                    onStatusUpdate={onStatusUpdate}
-                                />
-                            </TabsContent>
-                        ))}
-                    </Tabs>
-                }
+                <Tabs value={selectedContainerId ?? ""} onValueChange={setSelectedContainerId} className="w-full">
+                    <TabsList className="grid w-full" style={{gridTemplateColumns: `repeat(${submission.containers.length}, minmax(0, 1fr))`}}>
+                        {submission.containers.map((c, i) => <TabsTrigger key={c.id} value={c.id}>Step {i + 1}</TabsTrigger>)}
+                    </TabsList>
+                    {submission.containers.map(c => (
+                        <TabsContent key={c.id} value={c.id} className="mt-4">
+                            {c.status === 'Running' ?
+                                <RealtimeLogViewer wsUrl={getWsUrl(c.id)} onStatusUpdate={onStatusUpdate} /> :
+                                <StaticLogViewer submissionId={submission.id} containerId={c.id} />
+                            }
+                        </TabsContent>
+                    ))}
+                </Tabs>
             </CardContent>
         </Card>
     );
