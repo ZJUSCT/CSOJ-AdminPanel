@@ -119,20 +119,27 @@ export interface UserBestScore {
 }
 
 // Admin-specific types
-export interface NodeState {
-    name: string;
-    cpu: number;
-    memory: number;
-    docker: string;
+
+// Represents the static configuration of a node.
+export interface ConfigNode {
+  name: string;
+  cpu: number;
+  memory: number;
+  docker: string;
+}
+
+// Represents the live state of a node, including usage.
+export interface NodeState extends ConfigNode {
     used_memory: number;
     is_paused: boolean;
     used_cores: boolean[];
 }
 
+// Represents the live state of a cluster.
 export interface ClusterState {
     name: string;
-    node: NodeState[];
-    nodes: Record<string, NodeState>; // The API returns `nodes`
+    node: ConfigNode[]; // Static config of nodes in the cluster
+    nodes: Record<string, NodeState>; // Map of live node states
 }
 
 export interface ClusterStatusResponse {
