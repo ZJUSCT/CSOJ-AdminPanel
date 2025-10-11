@@ -49,7 +49,9 @@ const StaticLogViewer = ({ submissionId, containerId }: { submissionId: string, 
 const RealtimeLogViewer = ({ wsUrl, onStatusUpdate }: { wsUrl: string | null, onStatusUpdate: () => void }) => {
     const [messages, setMessages] = useState<LogMessage[]>([]);
     const logContainerRef = useRef<HTMLDivElement>(null);
-    const { readyState, lastMessage } = useWebSocket(wsUrl, { shouldReconnect: () => true, onClose: onStatusUpdate });
+    const { readyState, lastMessage } = useWebSocket(wsUrl, {
+        shouldReconnect: (closeEvent) => closeEvent.code !== 1000,
+        onClose: onStatusUpdate });
 
     useEffect(() => { setMessages([]); }, [wsUrl]);
     useEffect(() => {
