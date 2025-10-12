@@ -150,6 +150,19 @@ function SubmissionDetails({ submissionId }: { submissionId: string }) {
 						<div className="flex items-center justify-between"><span className="text-muted-foreground flex items-center gap-2"><Layers />Cluster</span><span>{submission.cluster}</span></div>
 						<div className="flex items-center justify-between"><span className="text-muted-foreground flex items-center gap-2"><Server />Node</span><span>{submission.node || 'N/A'}</span></div>
 
+						{submission.info && Object.keys(submission.info).length > 0 && (
+							<>
+								<Separator className="my-4" />
+								<div className="space-y-2">
+									<h3 className="font-semibold tracking-tight">Judge Info</h3>
+									<pre className="p-4 bg-muted rounded-md text-xs overflow-auto">
+										{JSON.stringify(submission.info, null, 2)}
+									</pre>
+									<p className="text-xs text-muted-foreground">This is the raw JSON output from the final step of the judging process.</p>
+								</div>
+							</>
+						)}
+
 						<Separator className="my-4" />
 
 						<div className="space-y-2">
@@ -173,19 +186,6 @@ function SubmissionDetails({ submissionId }: { submissionId: string }) {
 								</UpdateSubmissionDialog>
 							</div>
 						</div>
-
-						{submission.info && Object.keys(submission.info).length > 0 && (
-							<>
-								<Separator className="my-4" />
-								<div className="space-y-2">
-									<h3 className="font-semibold tracking-tight">Judge Info</h3>
-									<pre className="p-4 bg-muted rounded-md text-xs overflow-auto">
-										{JSON.stringify(submission.info, null, 2)}
-									</pre>
-									<p className="text-xs text-muted-foreground">This is the raw JSON output from the final step of the judging process.</p>
-								</div>
-							</>
-						)}
 					</CardContent>
 				</Card>
 			</div>
