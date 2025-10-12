@@ -16,7 +16,7 @@ import { Textarea } from "../ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 const contestSchema = z.object({
-    id: z.string().min(1, "ID is required").regex(/^[a-z0-9-]+$/, "ID must be lowercase alphanumeric with hyphens"),
+    id: z.string().min(1, "ID is required").regex(/^[a-z0-9-_]+$/, "ID must be lowercase alphanumeric with hyphens"),
     name: z.string().min(1, "Name is required"),
     starttime: z.string().refine((val) => !isNaN(Date.parse(val)), "Invalid start time"),
     endtime: z.string().refine((val) => !isNaN(Date.parse(val)), "Invalid end time"),
