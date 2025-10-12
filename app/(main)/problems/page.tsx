@@ -1,8 +1,8 @@
 "use client"
 import { useSearchParams } from 'next/navigation';
-import useSWR from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
 import api from '@/lib/api';
-import { Problem, Submission } from '@/lib/types';
+import { Problem, Submission, Contest } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -11,34 +11,36 @@ import { Suspense } from 'react';
 import SubmissionStatusBadge from '@/components/shared/submission-status-badge';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import {
-    Bot,
-    Calendar,
-    Clock,
-    Code2,
-    Cpu,
-    FolderSymlink,
-    Hash,
-    MemoryStick,
-    Network,
-    Server,
-    Target,
-    UploadCloud
-} from 'lucide-react';
+import { Bot, Calendar, Clock, Code2, Cpu, FolderSymlink, Hash, MemoryStick, Network, Server, Target, UploadCloud, PlusCircle, Edit, Trash2 } from 'lucide-react';
 import { formatBytes } from '@/lib/utils';
 import React from 'react';
+import { ProblemFormDialog, DeleteProblemButton } from '@/components/admin/problem-actions';
+import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
+import { AssetManager } from '@/components/admin/asset-manager';
 
 const fetcher = (url: string) => api.get(url).then(res => res.data.data);
 
 function ProblemList() {
-    const { data: problems, isLoading } = useSWR<Record<string, Problem>>('/problems', fetcher);
-    if (isLoading) return <Skeleton className="h-64 w-full" />;
+    const { data: problems, isLoading, mutate } = useSWR<Record<string, Problem>>('/problems', fetcher);
+    const { data: contests, isLoading: contestsLoading } = useSWR<Record<string, Contest>>('/contests', fetcher);
+    const { mutate: contestsMutate } = useSWRConfig();
+
+    const onSuccess = () => {
+        mutate();
+        contestsMutate('/contests');
+    };
+
+    if (isLoading || contestsLoading) return <Skeleton className="h-64 w-full" />;
 
     return (
         <Card>
-            <CardHeader>
-                <CardTitle>All Problems</CardTitle>
-                <CardDescription>List of all problems loaded in the system.</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+                 <div>
+                    <CardTitle>All Problems</CardTitle>
+                    <CardDescription>List of all problems loaded in the system.</CardDescription>
+                </div>
+                 <ProblemFormDialog contests={Object.values(contests || {})} onSuccess={onSuccess} trigger={<Button><PlusCircle/> Create Problem</Button>}/>
             </CardHeader>
             <CardContent>
                 <Table>
@@ -70,21 +72,50 @@ const InfoItem = ({ icon: Icon, label, value }: { icon: React.ElementType, label
 
 
 function ProblemDetails({ problemId }: { problemId: string }) {
-    const { data: problem, isLoading: problemLoading } = useSWR<Problem>(`/problems/${problemId}`, fetcher);
+    const { mutate } = useSWRConfig();
+    const router = useRouter();
+
+    const { data: problem, isLoading: problemLoading, mutate: mutateProblem } = useSWR<Problem>(`/problems/${problemId}`, fetcher);
+    const { data: contests, isLoading: contestsLoading } = useSWR<Record<string, Contest>>('/contests', fetcher);
     const { data: submissionsData, isLoading: submissionsLoading } = useSWR<{ items: Submission[] }>(`/submissions?problem_id=${problemId}&limit=100`, fetcher);
     const submissions = submissionsData?.items;
 
-    if (problemLoading || !problem) return <Skeleton className="h-screen w-full" />;
+    if (problemLoading || contestsLoading || !problem || !contests) return <Skeleton className="h-screen w-full" />;
+
+    const parentContest = Object.values(contests).find(c => c.problem_ids.includes(problem.id));
+
+    const onSuccess = () => {
+        mutateProblem();
+        mutate(`/contests`);
+        mutate(`/problems`);
+    }
+
+     const onProblemDelete = () => {
+        mutate(`/contests`);
+        mutate(`/problems`);
+        router.push('/problems');
+    }
 
     return (
         <div className="space-y-6">
+             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold">{problem.name}</h1>
+                    <p className="text-muted-foreground">Part of contest: <Link href={`/contests?id=${parentContest?.id}`} className="text-primary hover:underline">{parentContest?.name}</Link></p>
+                </div>
+                <div className="flex items-center gap-2">
+                    <ProblemFormDialog problem={problem} contestId={parentContest?.id} contests={Object.values(contests)} onSuccess={onSuccess} trigger={<Button variant="outline"><Edit/> Edit Problem</Button>}/>
+                    <DeleteProblemButton problem={problem} onSuccess={onProblemDelete} trigger={<Button variant="destructive"><Trash2/> Delete Problem</Button>}/>
+                </div>
+            </div>
+
             <Card>
                 <CardHeader>
-                    <CardTitle className="text-2xl">{problem.name}</CardTitle>
+                    <CardTitle>Problem Configuration</CardTitle>
                     <CardDescription>ID: <span className="font-mono">{problem.id}</span></CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="grid md:grid-cols-2 gap-x-8 gap-y-4 text-sm">
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4 text-sm">
                         <InfoItem icon={Calendar} label="Start Time" value={format(new Date(problem.starttime), "Pp")} />
                         <InfoItem icon={Clock} label="End Time" value={format(new Date(problem.endtime), "Pp")} />
                         <InfoItem icon={Server} label="Cluster" value={problem.cluster} />
@@ -96,6 +127,8 @@ function ProblemDetails({ problemId }: { problemId: string }) {
                     </div>
                 </CardContent>
             </Card>
+
+            <AssetManager assetType="problem" assetId={problemId} />
 
             <Card>
                 <CardHeader><CardTitle>Workflow Steps</CardTitle></CardHeader>
@@ -127,14 +160,7 @@ function ProblemDetails({ problemId }: { problemId: string }) {
                                         <h4 className="font-semibold flex items-center gap-2 mb-2"><FolderSymlink /> Mounts</h4>
                                         <div className="overflow-x-auto">
                                             <Table>
-                                                <TableHeader>
-                                                    <TableRow>
-                                                        <TableHead>Source</TableHead>
-                                                        <TableHead>Target</TableHead>
-                                                        <TableHead>Type</TableHead>
-                                                        <TableHead>Read Only</TableHead>
-                                                    </TableRow>
-                                                </TableHeader>
+                                                <TableHeader><TableRow><TableHead>Source</TableHead><TableHead>Target</TableHead><TableHead>Type</TableHead><TableHead>Read Only</TableHead></TableRow></TableHeader>
                                                 <TableBody>
                                                     {step.mounts.map((mount, mountIndex) => (
                                                         <TableRow key={mountIndex}>

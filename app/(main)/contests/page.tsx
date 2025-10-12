@@ -1,70 +1,88 @@
 "use client"
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
-import useSWR from 'swr';
-import { Contest, LeaderboardEntry, TrendEntry } from '@/lib/types';
+import useSWR, { useSWRConfig } from 'swr';
+import { Contest, LeaderboardEntry, Problem, TrendEntry } from '@/lib/types';
 import api from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
-import { Calendar, Clock, Trophy, BarChart3, List } from 'lucide-react';
+import { Calendar, Clock, Trophy, BarChart3, List, MoreVertical, Edit, Trash, PlusCircle, Files } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import EchartsTrendChart from '@/components/admin/echarts-trend-chart';
 import { Label } from '@/components/ui/label';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { ContestFormDialog, DeleteContestButton } from '@/components/admin/contest-actions';
+import { DeleteProblemButton, ProblemFormDialog } from '@/components/admin/problem-actions';
+import { useRouter } from 'next/navigation';
+import { AssetManager } from '@/components/admin/asset-manager';
 
 const fetcher = (url: string) => api.get(url).then(res => res.data.data);
 
 function ContestList() {
-    const { data: contests, error, isLoading } = useSWR<Record<string, Contest>>('/contests', fetcher);
+    const { data: contests, error, isLoading, mutate } = useSWR<Record<string, Contest>>('/contests', fetcher);
+    const { mutate: problemsMutate } = useSWRConfig();
 
-    if (isLoading) return (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {[...Array(3)].map((_, i) => (
-                <Card key={i}><CardHeader><Skeleton className="h-6 w-3/4" /></CardHeader><CardContent><Skeleton className="h-10 w-full" /></CardContent></Card>
-            ))}
-        </div>
-    );
     if (error) return <div>Failed to load contests.</div>;
-    if (!contests || Object.keys(contests).length === 0) return <div>No contests found.</div>;
+
+    const onSuccess = () => {
+        mutate();
+        problemsMutate('/problems'); // Also refresh problems list
+    };
 
     return (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {Object.values(contests).map(contest => (
-                <Card key={contest.id}>
-                    <CardHeader>
-                        <CardTitle className="text-xl">{contest.name}</CardTitle>
-                        <CardDescription>ID: {contest.id}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-2 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-2"><Calendar className="h-4 w-4" /><span>{format(new Date(contest.starttime), 'Pp')}</span></div>
-                        <div className="flex items-center gap-2"><Clock className="h-4 w-4" /><span>{format(new Date(contest.endtime), 'Pp')}</span></div>
-                    </CardContent>
-                    <CardFooter>
-                        <Link href={`/contests?id=${contest.id}`} passHref><Button>View Details</Button></Link>
-                    </CardFooter>
-                </Card>
-            ))}
-        </div>
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                    <CardTitle>Contests</CardTitle>
+                    <CardDescription>All contests loaded in the system.</CardDescription>
+                </div>
+                <ContestFormDialog onSuccess={onSuccess} trigger={<Button><PlusCircle /> Create Contest</Button>} />
+            </CardHeader>
+            <CardContent>
+                {isLoading ? <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 w-full" />)}</div> :
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                        {Object.values(contests || {}).map(contest => (
+                            <Card key={contest.id}>
+                                <CardHeader>
+                                    <div className="flex items-start justify-between">
+                                        <div>
+                                            <CardTitle className="text-xl">{contest.name}</CardTitle>
+                                            <CardDescription>ID: {contest.id}</CardDescription>
+                                        </div>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical /></Button></DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <ContestFormDialog contest={contest} onSuccess={onSuccess} trigger={<DropdownMenuItem onSelect={e => e.preventDefault()}><Edit /> Edit</DropdownMenuItem>} />
+                                                <DeleteContestButton contest={contest} onSuccess={onSuccess} trigger={<DropdownMenuItem onSelect={e => e.preventDefault()} className="text-destructive"><Trash /> Delete</DropdownMenuItem>} />
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="space-y-2 text-sm text-muted-foreground">
+                                    <div className="flex items-center gap-2"><Calendar className="h-4 w-4" /><span>{format(new Date(contest.starttime), 'Pp')}</span></div>
+                                    <div className="flex items-center gap-2"><Clock className="h-4 w-4" /><span>{format(new Date(contest.endtime), 'Pp')}</span></div>
+                                </CardContent>
+                                <CardFooter>
+                                    <Link href={`/contests?id=${contest.id}`} passHref><Button className="w-full">View Details</Button></Link>
+                                </CardFooter>
+                            </Card>
+                        ))}
+                    </div>
+                }
+            </CardContent>
+        </Card>
     );
 }
 
 function ContestTrendView({ contestId }: { contestId: string }) {
     const [numUsers, setNumUsers] = useState(20);
-
-    // Fetch the full leaderboard to determine the max number of participants for the slider.
     const { data: leaderboardData, isLoading: leaderboardLoading } = useSWR<LeaderboardEntry[]>(`/contests/${contestId}/leaderboard`, fetcher);
-
-    // Fetch the trend data for the number of users selected by the slider.
-    const { data: trendData, isLoading: trendLoading } = useSWR<TrendEntry[]>(
-        `/contests/${contestId}/trend?maxnum=${numUsers}`,
-        fetcher
-    );
-
+    const { data: trendData, isLoading: trendLoading } = useSWR<TrendEntry[]>(`/contests/${contestId}/trend?maxnum=${numUsers}`, fetcher);
     const maxUsers = leaderboardData?.length ?? 100;
-
     if (leaderboardLoading) return <Skeleton className="h-[550px] w-full" />;
 
     return (
@@ -76,20 +94,10 @@ function ContestTrendView({ contestId }: { contestId: string }) {
             <CardContent>
                 <div className="flex items-center space-x-4 mb-4 p-2 bg-muted rounded-md">
                     <Label htmlFor="user-slider" className="min-w-fit text-sm">Top Users: <span className="font-bold text-primary text-base">{numUsers}</span></Label>
-                    <input
-                        id="user-slider"
-                        type="range"
-                        min="1"
-                        max={maxUsers}
-                        value={numUsers}
-                        onChange={(e) => setNumUsers(Number(e.target.value))}
-                        className="w-full h-2 bg-primary/20 rounded-lg appearance-none cursor-pointer dark:bg-primary/30"
-                    />
+                    <input id="user-slider" type="range" min="1" max={maxUsers} value={numUsers} onChange={(e) => setNumUsers(Number(e.target.value))} className="w-full h-2 bg-primary/20 rounded-lg appearance-none cursor-pointer dark:bg-primary/30" />
                 </div>
                 <div className="h-[500px]">
-                    {trendLoading ? <Skeleton className="h-full w-full" /> :
-                        trendData ? <EchartsTrendChart trendData={trendData} /> : <div className="text-center text-muted-foreground">Could not load trend data.</div>
-                    }
+                    {trendLoading ? <Skeleton className="h-full w-full" /> : trendData ? <EchartsTrendChart trendData={trendData} /> : <div className="text-center text-muted-foreground">Could not load trend data.</div>}
                 </div>
             </CardContent>
         </Card>
@@ -100,9 +108,8 @@ function ContestLeaderboard({ contestId }: { contestId: string }) {
     const { data: contest } = useSWR<Contest>(`/contests/${contestId}`, fetcher);
     const { data: leaderboard, isLoading } = useSWR<LeaderboardEntry[]>(`/contests/${contestId}/leaderboard`, fetcher, { refreshInterval: 15000 });
 
-    if (isLoading) return <Skeleton className="h-64 w-full" />;
-    if (!leaderboard || leaderboard.length === 0) return <p>No scores recorded yet.</p>;
-    if (!contest) return <p>Could not load contest details for header.</p>;
+    if (isLoading || !contest) return <Skeleton className="h-64 w-full" />;
+    if (!leaderboard || leaderboard.length === 0) return <p className="text-muted-foreground text-center py-8">No scores recorded yet.</p>;
 
     return (
         <Card>
@@ -111,11 +118,8 @@ function ContestLeaderboard({ contestId }: { contestId: string }) {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Rank</TableHead>
-                            <TableHead>User</TableHead>
-                            {contest.problem_ids.map((id, index) => (
-                                <TableHead key={id} className="text-center"><Link href={`/problems?id=${id}`} className="hover:underline">P{index + 1}</Link></TableHead>
-                            ))}
+                            <TableHead>Rank</TableHead><TableHead>User</TableHead>
+                            {contest.problem_ids.map((id, index) => <TableHead key={id} className="text-center"><Link href={`/problems?id=${id}`} className="hover:underline">P{index + 1}</Link></TableHead>)}
                             <TableHead className="text-right">Total Score</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -135,17 +139,75 @@ function ContestLeaderboard({ contestId }: { contestId: string }) {
     );
 }
 
+function ContestProblemsView({ contest, allProblems, contests, onSuccess }: { contest: Contest, allProblems: Record<string, Problem>, contests: Contest[], onSuccess: () => void }) {
+    const contestProblems = contest.problem_ids.map(id => allProblems[id]).filter(Boolean);
+
+    return (
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Problems in Contest</CardTitle>
+                <ProblemFormDialog contestId={contest.id} contests={contests} onSuccess={onSuccess} trigger={<Button><PlusCircle /> Add Problem</Button>} />
+            </CardHeader>
+            <CardContent>
+                {contestProblems.length === 0 ? <p className="text-muted-foreground text-center py-8">No problems added to this contest yet.</p> :
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        {contestProblems.map(problem => (
+                            <Card key={problem.id}>
+                                <CardHeader className="flex flex-row items-start justify-between">
+                                    <CardTitle className="text-base">{problem.name}</CardTitle>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical /></Button></DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <ProblemFormDialog problem={problem} contestId={contest.id} contests={contests} onSuccess={onSuccess} trigger={<DropdownMenuItem onSelect={e => e.preventDefault()}><Edit /> Edit</DropdownMenuItem>} />
+                                            <DeleteProblemButton problem={problem} onSuccess={onSuccess} trigger={<DropdownMenuItem onSelect={e => e.preventDefault()} className="text-destructive"><Trash /> Delete</DropdownMenuItem>} />
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </CardHeader>
+                                <CardDescription className="px-6 pb-2 font-mono text-xs">{problem.id}</CardDescription>
+                                <CardFooter><Link href={`/problems?id=${problem.id}`} className="w-full"><Button size="sm" className="w-full">View Problem</Button></Link></CardFooter>
+                            </Card>
+                        ))}
+                    </div>
+                }
+            </CardContent>
+        </Card>
+    )
+}
+
 function ContestDetailView({ contestId, view }: { contestId: string, view: string }) {
-    const { data: contest, isLoading } = useSWR<Contest>(`/contests/${contestId}`, fetcher);
+    const { mutate: globalMutate } = useSWRConfig();
+    const router = useRouter();
+
+    const { data: contest, isLoading, mutate: mutateContest } = useSWR<Contest>(`/contests/${contestId}`, fetcher);
+    const { data: allProblems, isLoading: problemsLoading } = useSWR<Record<string, Problem>>('/problems', fetcher);
+    const { data: allContests, isLoading: contestsLoading } = useSWR<Record<string, Contest>>('/contests', fetcher);
+
+    const onSuccess = () => {
+        globalMutate(`/contests`);
+        globalMutate(`/problems`);
+        mutateContest();
+    };
+    
+    const onContestDelete = () => {
+        globalMutate('/contests');
+        router.push('/contests');
+    }
+
+    if (isLoading || !contest || problemsLoading || contestsLoading || !allProblems || !allContests) return <Skeleton className="h-96 w-full" />;
 
     return (
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                <h1 className="text-3xl font-bold">{isLoading ? <Skeleton className="h-8 w-64" /> : contest?.name}</h1>
+                <h1 className="text-3xl font-bold">{contest.name}</h1>
+                <div className="flex items-center gap-2">
+                    <ContestFormDialog contest={contest} onSuccess={onSuccess} trigger={<Button variant="outline"><Edit/> Edit</Button>}/>
+                    <DeleteContestButton contest={contest} onSuccess={onContestDelete} trigger={<Button variant="destructive"><Trash/> Delete</Button>}/>
+                </div>
             </div>
             <Tabs value={view} className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="problems" asChild><Link href={`/contests?id=${contestId}&view=problems`}>Problems</Link></TabsTrigger>
+                    <TabsTrigger value="assets" asChild><Link href={`/contests?id=${contestId}&view=assets`}>Assets</Link></TabsTrigger>
                     <TabsTrigger value="leaderboard" asChild><Link href={`/contests?id=${contestId}&view=leaderboard`}>Leaderboard</Link></TabsTrigger>
                     <TabsTrigger value="trend" asChild><Link href={`/contests?id=${contestId}&view=trend`}>Trend</Link></TabsTrigger>
                 </TabsList>
@@ -153,20 +215,8 @@ function ContestDetailView({ contestId, view }: { contestId: string, view: strin
             <div className="mt-6">
                 {view === 'leaderboard' && <ContestLeaderboard contestId={contestId} />}
                 {view === 'trend' && <ContestTrendView contestId={contestId} />}
-                {view === 'problems' && (
-                    <Card>
-                        <CardHeader><CardTitle>Problems in Contest</CardTitle></CardHeader>
-                        <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                            {isLoading && [...Array(3)].map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
-                            {contest?.problem_ids.map(problemId => (
-                                <Card key={problemId}>
-                                    <CardHeader><CardTitle className="text-base">{problemId}</CardTitle></CardHeader>
-                                    <CardFooter><Link href={`/problems?id=${problemId}`}><Button size="sm">View Problem</Button></Link></CardFooter>
-                                </Card>
-                            ))}
-                        </CardContent>
-                    </Card>
-                )}
+                {view === 'problems' && <ContestProblemsView contest={contest} allProblems={allProblems} contests={Object.values(allContests)} onSuccess={onSuccess} />}
+                {view === 'assets' && <AssetManager assetType="contest" assetId={contestId} />}
             </div>
         </div>
     );
@@ -176,18 +226,10 @@ function ContestsPageContent() {
     const searchParams = useSearchParams();
     const contestId = searchParams.get('id');
     const view = searchParams.get('view') || 'problems';
-
-    if (contestId) {
-        return <ContestDetailView contestId={contestId} view={view} />;
-    }
-
+    if (contestId) return <ContestDetailView contestId={contestId} view={view} />;
     return <ContestList />;
 }
 
 export default function ContestsPage() {
-    return (
-        <Suspense fallback={<Skeleton className="w-full h-96" />}>
-            <ContestsPageContent />
-        </Suspense>
-    );
+    return (<Suspense fallback={<Skeleton className="w-full h-96" />}><ContestsPageContent /></Suspense>);
 }

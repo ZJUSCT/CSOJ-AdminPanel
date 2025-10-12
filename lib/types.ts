@@ -40,6 +40,9 @@ export interface Problem {
     upload: {
         max_num: number;
         max_size: number;
+        upload_form: boolean;
+        editor: boolean;
+        editor_files: string[];
     };
     workflow: WorkflowStep[];
     score: {
@@ -127,6 +130,13 @@ export interface UserBestScore {
 }
 
 // Admin-specific types
+export interface AssetFile {
+    name: string;
+    path: string;
+    is_dir: boolean;
+    size: number;
+    mod_time: string;
+}
 
 // Represents the static configuration of a node.
 export interface ConfigNode {
