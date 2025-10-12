@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import yaml from 'js-yaml';
 import { Label } from "../ui/label";
 import { Checkbox } from "../ui/checkbox";
+import { format } from "date-fns";
 
 const problemSchema = z.object({
     id: z.string().min(1, "ID is required").regex(/^[a-z0-9-_]+$/, "ID must be lowercase alphanumeric with hyphens"),
@@ -74,8 +75,8 @@ export function ProblemFormDialog({
         defaultValues: {
             id: problem?.id || '',
             name: problem?.name || '',
-            starttime: problem ? new Date(problem.starttime).toISOString().slice(0, 16) : '',
-            endtime: problem ? new Date(problem.endtime).toISOString().slice(0, 16) : '',
+            starttime: problem ? format(new Date(problem.starttime), "yyyy-MM-dd'T'HH:mm") : '',
+            endtime: problem ? format(new Date(problem.endtime), "yyyy-MM-dd'T'HH:mm") : '',
             max_submissions: problem?.max_submissions || 0,
             cluster: problem?.cluster || '',
             cpu: problem?.cpu || 1,

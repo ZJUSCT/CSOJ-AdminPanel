@@ -14,6 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "../ui/textarea";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { format } from "date-fns";
 
 const contestSchema = z.object({
     id: z.string().min(1, "ID is required").regex(/^[a-z0-9-_]+$/, "ID must be lowercase alphanumeric with hyphens"),
@@ -43,8 +44,8 @@ export function ContestFormDialog({
         defaultValues: {
             id: contest?.id || '',
             name: contest?.name || '',
-            starttime: contest ? new Date(contest.starttime).toISOString().slice(0, 16) : '',
-            endtime: contest ? new Date(contest.endtime).toISOString().slice(0, 16) : '',
+            starttime: contest ? format(new Date(contest.starttime), "yyyy-MM-dd'T'HH:mm") : '',
+            endtime: contest ? format(new Date(contest.endtime), "yyyy-MM-dd'T'HH:mm") : '',
             description: contest?.description || '',
         },
     });
