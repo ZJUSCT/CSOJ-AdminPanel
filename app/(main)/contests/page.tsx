@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
-import { Calendar, Clock, Trophy, BarChart3, List, MoreVertical, Edit, Trash, PlusCircle, Files } from 'lucide-react';
+import { Calendar, Clock, Trophy, BarChart3, List, MoreVertical, Edit, Trash, PlusCircle, Files, Megaphone } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import EchartsTrendChart from '@/components/admin/echarts-trend-chart';
@@ -19,6 +19,7 @@ import { ContestFormDialog, DeleteContestButton } from '@/components/admin/conte
 import { DeleteProblemButton, ProblemFormDialog } from '@/components/admin/problem-actions';
 import { useRouter } from 'next/navigation';
 import { AssetManager } from '@/components/admin/asset-manager';
+import { AnnouncementManager } from '@/components/admin/announcement-manager';
 
 const fetcher = (url: string) => api.get(url).then(res => res.data.data);
 
@@ -205,18 +206,20 @@ function ContestDetailView({ contestId, view }: { contestId: string, view: strin
                 </div>
             </div>
             <Tabs value={view} className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-5">
                     <TabsTrigger value="problems" asChild><Link href={`/contests?id=${contestId}&view=problems`}>Problems</Link></TabsTrigger>
+                    <TabsTrigger value="announcements" asChild><Link href={`/contests?id=${contestId}&view=announcements`}>Announcements</Link></TabsTrigger>
                     <TabsTrigger value="assets" asChild><Link href={`/contests?id=${contestId}&view=assets`}>Assets</Link></TabsTrigger>
                     <TabsTrigger value="leaderboard" asChild><Link href={`/contests?id=${contestId}&view=leaderboard`}>Leaderboard</Link></TabsTrigger>
                     <TabsTrigger value="trend" asChild><Link href={`/contests?id=${contestId}&view=trend`}>Trend</Link></TabsTrigger>
                 </TabsList>
             </Tabs>
             <div className="mt-6">
+                {view === 'problems' && <ContestProblemsView contest={contest} allProblems={allProblems} contests={Object.values(allContests)} onSuccess={onSuccess} />}
+                {view === 'announcements' && <AnnouncementManager contestId={contestId} />}
+                {view === 'assets' && <AssetManager assetType="contest" assetId={contestId} />}
                 {view === 'leaderboard' && <ContestLeaderboard contestId={contestId} />}
                 {view === 'trend' && <ContestTrendView contestId={contestId} />}
-                {view === 'problems' && <ContestProblemsView contest={contest} allProblems={allProblems} contests={Object.values(allContests)} onSuccess={onSuccess} />}
-                {view === 'assets' && <AssetManager assetType="contest" assetId={contestId} />}
             </div>
         </div>
     );
