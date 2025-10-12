@@ -19,6 +19,7 @@ import { UpdateSubmissionDialog } from '@/components/admin/submission-actions';
 import { PaginationControls } from '@/components/shared/pagination-controls';
 import { SubmissionTableActions } from '@/components/admin/submission-table-actions';
 import { RefreshIntervalSelector } from '@/components/shared/refresh-interval-selector';
+import { Separator } from '@/components/ui/separator';
 
 const fetcher = (url: string) => api.get(url).then(res => res.data.data);
 
@@ -120,7 +121,6 @@ function SubmissionDetails({ submissionId }: { submissionId: string }) {
 		const endpoint = action === 'validity' ? `/submissions/${submissionId}/validity` : `/submissions/${submissionId}/${action}`;
 		const method = action === 'validity' ? 'patch' : 'post';
 		try {
-			// For delete, we use the delete method
 			const apiCall = action === 'delete' ? api.delete(endpoint) : api[method](endpoint, payload);
 			await apiCall;
 			toast({ title: 'Success', description: `Action '${action}' completed successfully.` });
@@ -139,7 +139,7 @@ function SubmissionDetails({ submissionId }: { submissionId: string }) {
 			</div>
 			<div className="space-y-6">
 				<Card>
-					<CardHeader><CardTitle>Submission Details</CardTitle></CardHeader>
+					<CardHeader><CardTitle>Submission Info</CardTitle></CardHeader>
 					<CardContent className="space-y-4 text-sm">
 						<div className="flex items-center justify-between"><span className="text-muted-foreground flex items-center gap-2"><Hash />Status</span><SubmissionStatusBadge status={submission.status} /></div>
 						<div className="flex items-center justify-between"><span className="text-muted-foreground flex items-center gap-2">Validity</span><span>{submission.is_valid ? 'Valid' : 'Invalid'}</span></div>
@@ -148,26 +148,42 @@ function SubmissionDetails({ submissionId }: { submissionId: string }) {
 						<div className="flex items-center justify-between"><span className="text-muted-foreground flex items-center gap-2"><User />User</span><Link href={`/users?id=${submission.user_id}`} className="text-primary hover:underline">{submission.user.nickname}</Link></div>
 						<div className="flex items-center justify-between"><span className="text-muted-foreground flex items-center gap-2"><Layers />Cluster</span><span>{submission.cluster}</span></div>
 						<div className="flex items-center justify-between"><span className="text-muted-foreground flex items-center gap-2"><Server />Node</span><span>{submission.node || 'N/A'}</span></div>
-					</CardContent>
-				</Card>
-				<Card>
-					<CardHeader><CardTitle>Admin Actions</CardTitle></CardHeader>
-					<CardContent className="grid grid-cols-2 gap-2">
-						<Button onClick={() => handleAction('rejudge')}><RefreshCcw /> Rejudge</Button>
-						<Button asChild variant="outline">
-							<Link href={`/api/v1/submissions/${submissionId}/content`} download>
-								<Download /> Download Files
-							</Link>
-						</Button>
-						<Button variant="destructive" onClick={() => handleAction('interrupt')} disabled={submission.status !== 'Queued' && submission.status !== 'Running'}><XCircle /> Interrupt</Button>
-						{submission.is_valid ?
-							<Button variant="outline" onClick={() => handleAction('validity', { is_valid: false })}><Ban /> Mark Invalid</Button>
-							: <Button variant="outline" onClick={() => handleAction('validity', { is_valid: true })}><CheckCircle /> Mark Valid</Button>
-						}
-						<Button variant="destructive" onClick={() => { if (confirm('Are you sure? This will delete the submission and its content permanently.')) handleAction('delete') }}><Trash2 /> Delete</Button>
-						<UpdateSubmissionDialog submission={submission} onSubmissionUpdated={mutate}>
-							<Button variant="outline" className="w-full"><Edit /> Manual Override</Button>
-						</UpdateSubmissionDialog>
+						
+						<Separator className="my-4" />
+						
+						<div className="space-y-2">
+							<h3 className="font-semibold tracking-tight">Admin Actions</h3>
+							<div className="grid grid-cols-2 gap-2">
+								<Button onClick={() => handleAction('rejudge')}><RefreshCcw /> Rejudge</Button>
+								<Button asChild variant="outline">
+									<Link href={`/api/v1/submissions/${submissionId}/content`} download>
+										<Download /> Download Files
+									</Link>
+								</Button>
+								<Button variant="destructive" onClick={() => handleAction('interrupt')} disabled={submission.status !== 'Queued' && submission.status !== 'Running'}><XCircle /> Interrupt</Button>
+								{submission.is_valid ?
+									<Button variant="outline" onClick={() => handleAction('validity', { is_valid: false })}><Ban /> Mark Invalid</Button>
+									: <Button variant="outline" onClick={() => handleAction('validity', { is_valid: true })}><CheckCircle /> Mark Valid</Button>
+								}
+								<Button variant="destructive" onClick={() => { if (confirm('Are you sure? This will delete the submission and its content permanently.')) handleAction('delete') }}><Trash2 /> Delete</Button>
+								<UpdateSubmissionDialog submission={submission} onSubmissionUpdated={mutate}>
+									<Button variant="outline" className="w-full"><Edit /> Manual Override</Button>
+								</UpdateSubmissionDialog>
+							</div>
+						</div>
+
+                        {submission.info && Object.keys(submission.info).length > 0 && (
+                             <>
+                                <Separator className="my-4" />
+                                <div className="space-y-2">
+                                    <h3 className="font-semibold tracking-tight">Judge Info</h3>
+                                    <pre className="p-4 bg-muted rounded-md text-xs overflow-auto">
+                                        {JSON.stringify(submission.info, null, 2)}
+                                    </pre>
+                                    <p className="text-xs text-muted-foreground">This is the raw JSON output from the final step of the judging process.</p>
+                                </div>
+                             </>
+                        )}
 					</CardContent>
 				</Card>
 			</div>
