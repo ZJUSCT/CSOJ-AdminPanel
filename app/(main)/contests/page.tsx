@@ -216,7 +216,11 @@ function ContestDetailView({ contestId, view }: { contestId: string, view: strin
                 {view === 'leaderboard' && <ContestLeaderboard contestId={contestId} />}
                 {view === 'trend' && <ContestTrendView contestId={contestId} />}
                 {view === 'problems' && <ContestProblemsView contest={contest} allProblems={allProblems} contests={Object.values(allContests)} onSuccess={onSuccess} />}
-                {view === 'assets' && <AssetManager assetType="contest" assetId={contestId} />}
+                <AssetManager 
+                    assetType="contest" 
+                    assetId={contestId} 
+                    uploadButtonText="Upload Contest Asset" 
+                />
             </div>
         </div>
     );

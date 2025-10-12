@@ -20,9 +20,10 @@ const fetcher = (url: string) => api.get(url).then(res => res.data.data);
 interface AssetManagerProps {
     assetType: 'contest' | 'problem';
     assetId: string;
+    uploadButtonText?: string;
 }
 
-export function AssetManager({ assetType, assetId }: AssetManagerProps) {
+export function AssetManager({ assetType, assetId, uploadButtonText = "Upload" }: AssetManagerProps) {
     const apiPrefix = assetType === 'contest' ? `/contests` : `/problems`;
     const assetUrl = `${apiPrefix}/${assetId}/assets`;
 
@@ -51,6 +52,9 @@ export function AssetManager({ assetType, assetId }: AssetManagerProps) {
             });
             toast({ title: 'Upload successful' });
             setSelectedFiles(null);
+            // Clear the file input visually after successful upload
+            const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+            if (fileInput) fileInput.value = '';
             mutate();
         } catch (err: any) {
             toast({ variant: 'destructive', title: 'Upload failed', description: err.response?.data?.message });
@@ -86,7 +90,7 @@ export function AssetManager({ assetType, assetId }: AssetManagerProps) {
                 <div className="mb-4 flex flex-col sm:flex-row gap-2 border p-4 rounded-lg">
                     <Input type="file" multiple onChange={(e) => setSelectedFiles(e.target.files)} className="flex-grow" />
                     <Button onClick={handleUpload} disabled={uploading || !selectedFiles}>
-                        <Upload className="mr-2 h-4 w-4" /> {uploading ? 'Uploading...' : 'Upload'}
+                        <Upload className="mr-2 h-4 w-4" /> {uploading ? 'Uploading...' : uploadButtonText}
                     </Button>
                 </div>
                 {isLoading ? <Skeleton className="h-48 w-full" /> :
