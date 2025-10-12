@@ -32,12 +32,12 @@ const StaticLogViewer = ({ submissionId, containerId }: { submissionId: string, 
     }, [messages]);
 
     return (
-        <div className="relative">
+        <div className="relative h-full">
              <div className="absolute top-2 right-6 text-xs font-semibold flex items-center gap-2 z-10">
                 <span className="h-2 w-2 rounded-full bg-gray-400"></span>
                 Finished
             </div>
-            <div ref={logContainerRef} className="font-mono text-xs bg-muted rounded-md h-96 overflow-y-auto p-4">
+            <div ref={logContainerRef} className="font-mono text-xs bg-muted rounded-md h-full overflow-y-auto p-4">
                 {isLoading && <Skeleton className="h-full w-full" />}
                 {error && <p className="text-red-400">Failed to load log.</p>}
                 {messages.map((msg, index) => (
@@ -96,12 +96,12 @@ const RealtimeLogViewer = ({ wsUrl, onStatusUpdate }: { wsUrl: string | null, on
     }[readyState];
 
     return (
-        <div className="relative">
+        <div className="relative h-full">
             <div className="absolute top-2 right-6 text-xs font-semibold flex items-center gap-2 z-10">
                 <span className={`h-2 w-2 rounded-full ${connectionStatus.color}`}></span>
                 {connectionStatus.text}
             </div>
-            <div ref={logContainerRef} className="font-mono text-xs bg-muted rounded-md h-96 overflow-y-auto p-4">
+            <div ref={logContainerRef} className="font-mono text-xs bg-muted rounded-md h-full overflow-y-auto p-4">
                 {messages.length === 0 && readyState === ReadyState.OPEN && <p className="text-muted-foreground">Waiting for judge output...</p>}
                 {messages.map((msg, index) => (
                     <span key={index} className="whitespace-pre-wrap break-all">
@@ -138,7 +138,7 @@ export function AdminSubmissionLogViewer({ submission, problem, onStatusUpdate }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [submission?.containers.length]);
 
-    if (!submission || !problem) return <Card><CardHeader><CardTitle>Live Log</CardTitle></CardHeader><CardContent><Skeleton className="h-96 w-full" /></CardContent></Card>;
+    if (!submission || !problem) return <Card className="h-full flex flex-col"><CardHeader><CardTitle>Live Log</CardTitle></CardHeader><CardContent className="flex-1"><Skeleton className="h-full w-full" /></CardContent></Card>;
 
     const getWsUrl = (containerId: string | null) => {
         if (!containerId || typeof window === 'undefined') return null;
@@ -149,22 +149,30 @@ export function AdminSubmissionLogViewer({ submission, problem, onStatusUpdate }
 
     if (submission.containers.length === 0) {
         return (
-            <div className="font-mono text-xs bg-muted rounded-md h-96 overflow-y-auto p-4 text-muted-foreground flex items-center justify-center">
-                Submission is in queue. No logs to display yet.
-            </div>
+            <Card className="flex flex-col h-full">
+                <CardHeader>
+                    <CardTitle>Live Log</CardTitle>
+                    <CardDescription>Real-time output from the judge containers.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex-1">
+                    <div className="font-mono text-xs bg-muted rounded-md h-full overflow-y-auto p-4 text-muted-foreground flex items-center justify-center">
+                        Submission is in queue. No logs to display yet.
+                    </div>
+                </CardContent>
+            </Card>
         );
     }
 
     return (
-        <Card>
+        <Card className="flex flex-col h-full">
             <CardHeader><CardTitle>Live Log</CardTitle><CardDescription>Real-time output from the judge containers.</CardDescription></CardHeader>
-            <CardContent>
-                <Tabs value={selectedContainerId ?? ""} onValueChange={setSelectedContainerId} className="w-full">
+            <CardContent className="flex flex-col flex-1">
+                <Tabs value={selectedContainerId ?? ""} onValueChange={setSelectedContainerId} className="w-full flex flex-col flex-1">
                     <TabsList className="grid w-full" style={{gridTemplateColumns: `repeat(${submission.containers.length}, minmax(0, 1fr))`}}>
                         {submission.containers.map((c, i) => <TabsTrigger key={c.id} value={c.id}>Step {i + 1}</TabsTrigger>)}
                     </TabsList>
                     {submission.containers.map(c => (
-                        <TabsContent key={c.id} value={c.id} className="mt-4">
+                        <TabsContent key={c.id} value={c.id} className="mt-4 flex-1">
                             {c.status === 'Running' ?
                                 <RealtimeLogViewer wsUrl={getWsUrl(c.id)} onStatusUpdate={onStatusUpdate} /> :
                                 <StaticLogViewer submissionId={submission.id} containerId={c.id} />

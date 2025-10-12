@@ -134,13 +134,11 @@ function SubmissionDetails({ submissionId }: { submissionId: string }) {
 
 	return (
 		<div className="grid gap-6 lg:grid-cols-3 items-stretch">
-			<div className="lg:col-span-2 flex flex-col h-full">
-				<div className="flex flex-col h-full">
-					<AdminSubmissionLogViewer submission={submission} problem={problem} onStatusUpdate={mutate} />
-				</div>
+			<div className="lg:col-span-2">
+				<AdminSubmissionLogViewer submission={submission} problem={problem} onStatusUpdate={mutate} />
 			</div>
 
-			<div className="flex flex-col h-full">
+			<div>
 				<Card className="flex flex-col h-full">
 					<CardHeader><CardTitle>Submission Info</CardTitle></CardHeader>
 					<CardContent className="flex-1 space-y-4 text-sm overflow-y-auto">
