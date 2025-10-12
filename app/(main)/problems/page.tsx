@@ -128,11 +128,7 @@ function ProblemDetails({ problemId }: { problemId: string }) {
                 </CardContent>
             </Card>
 
-            <AssetManager 
-                assetType="problem" 
-                assetId={problemId} 
-                uploadButtonText="Upload Problem Asset" 
-            />
+            <AssetManager assetType="problem" assetId={problemId} />
 
             <Card>
                 <CardHeader><CardTitle>Workflow Steps</CardTitle></CardHeader>
