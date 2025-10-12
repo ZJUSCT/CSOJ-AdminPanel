@@ -128,19 +128,29 @@ function SubmissionDetails({ submissionId }: { submissionId: string }) {
 		} catch (err: any) {
 			toast({ variant: 'destructive', title: 'Error', description: err.response?.data?.message || `Failed to perform action '${action}'.` });
 		}
-	}
+	};
 
 	if (!submission) return <Skeleton className="h-screen w-full" />;
 
 	return (
-		<div className="grid gap-6 lg:grid-cols-3">
-			<div className="lg:col-span-2 space-y-6">
-				<AdminSubmissionLogViewer submission={submission} problem={problem} onStatusUpdate={mutate} />
+		<div className="grid gap-6 lg:grid-cols-3 items-stretch">
+			<div className="lg:col-span-2 flex flex-col h-full">
+				<Card className="flex flex-col h-full">
+					<CardHeader>
+						<CardTitle>Execution Logs</CardTitle>
+					</CardHeader>
+					<CardContent className="flex-1 overflow-hidden">
+						<div className="h-full">
+							<AdminSubmissionLogViewer submission={submission} problem={problem} onStatusUpdate={mutate} />
+						</div>
+					</CardContent>
+				</Card>
 			</div>
-			<div className="space-y-6">
-				<Card>
+
+			<div className="flex flex-col h-full">
+				<Card className="flex flex-col h-full">
 					<CardHeader><CardTitle>Submission Info</CardTitle></CardHeader>
-					<CardContent className="space-y-4 text-sm">
+					<CardContent className="flex-1 space-y-4 text-sm overflow-y-auto">
 						<div className="flex items-center justify-between"><span className="text-muted-foreground flex items-center gap-2"><Hash />Status</span><SubmissionStatusBadge status={submission.status} /></div>
 						<div className="flex items-center justify-between"><span className="text-muted-foreground flex items-center gap-2">Validity</span><span>{submission.is_valid ? 'Valid' : 'Invalid'}</span></div>
 						<div className="flex items-center justify-between"><span className="text-muted-foreground flex items-center gap-2"><Clock />Submitted</span><span>{formatDistanceToNow(new Date(submission.CreatedAt), { addSuffix: true })}</span></div>
@@ -148,9 +158,9 @@ function SubmissionDetails({ submissionId }: { submissionId: string }) {
 						<div className="flex items-center justify-between"><span className="text-muted-foreground flex items-center gap-2"><User />User</span><Link href={`/users?id=${submission.user_id}`} className="text-primary hover:underline">{submission.user.nickname}</Link></div>
 						<div className="flex items-center justify-between"><span className="text-muted-foreground flex items-center gap-2"><Layers />Cluster</span><span>{submission.cluster}</span></div>
 						<div className="flex items-center justify-between"><span className="text-muted-foreground flex items-center gap-2"><Server />Node</span><span>{submission.node || 'N/A'}</span></div>
-						
+
 						<Separator className="my-4" />
-						
+
 						<div className="space-y-2">
 							<h3 className="font-semibold tracking-tight">Admin Actions</h3>
 							<div className="grid grid-cols-2 gap-2">
@@ -161,29 +171,30 @@ function SubmissionDetails({ submissionId }: { submissionId: string }) {
 									</Link>
 								</Button>
 								<Button variant="destructive" onClick={() => handleAction('interrupt')} disabled={submission.status !== 'Queued' && submission.status !== 'Running'}><XCircle /> Interrupt</Button>
-								{submission.is_valid ?
+								{submission.is_valid ? (
 									<Button variant="outline" onClick={() => handleAction('validity', { is_valid: false })}><Ban /> Mark Invalid</Button>
-									: <Button variant="outline" onClick={() => handleAction('validity', { is_valid: true })}><CheckCircle /> Mark Valid</Button>
-								}
-								<Button variant="destructive" onClick={() => { if (confirm('Are you sure? This will delete the submission and its content permanently.')) handleAction('delete') }}><Trash2 /> Delete</Button>
+								) : (
+									<Button variant="outline" onClick={() => handleAction('validity', { is_valid: true })}><CheckCircle /> Mark Valid</Button>
+								)}
+								<Button variant="destructive" onClick={() => { if (confirm('Are you sure? This will delete the submission and its content permanently.')) handleAction('delete'); }}><Trash2 /> Delete</Button>
 								<UpdateSubmissionDialog submission={submission} onSubmissionUpdated={mutate}>
 									<Button variant="outline" className="w-full"><Edit /> Manual Override</Button>
 								</UpdateSubmissionDialog>
 							</div>
 						</div>
 
-                        {submission.info && Object.keys(submission.info).length > 0 && (
-                             <>
-                                <Separator className="my-4" />
-                                <div className="space-y-2">
-                                    <h3 className="font-semibold tracking-tight">Judge Info</h3>
-                                    <pre className="p-4 bg-muted rounded-md text-xs overflow-auto">
-                                        {JSON.stringify(submission.info, null, 2)}
-                                    </pre>
-                                    <p className="text-xs text-muted-foreground">This is the raw JSON output from the final step of the judging process.</p>
-                                </div>
-                             </>
-                        )}
+						{submission.info && Object.keys(submission.info).length > 0 && (
+							<>
+								<Separator className="my-4" />
+								<div className="space-y-2">
+									<h3 className="font-semibold tracking-tight">Judge Info</h3>
+									<pre className="p-4 bg-muted rounded-md text-xs overflow-auto">
+										{JSON.stringify(submission.info, null, 2)}
+									</pre>
+									<p className="text-xs text-muted-foreground">This is the raw JSON output from the final step of the judging process.</p>
+								</div>
+							</>
+						)}
 					</CardContent>
 				</Card>
 			</div>
