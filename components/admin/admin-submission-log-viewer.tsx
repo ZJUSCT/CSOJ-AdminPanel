@@ -37,8 +37,8 @@ const StaticLogViewer = ({ submissionId, containerId }: { submissionId: string, 
                 <span className="h-2 w-2 rounded-full bg-gray-400"></span>
                 Finished
             </div>
-            <div ref={logContainerRef} className="font-mono text-xs bg-muted rounded-md h-full overflow-y-auto p-4">
-                {isLoading && <Skeleton className="h-full w-full" />}
+            <div ref={logContainerRef} className="font-mono text-xs bg-muted rounded-md h-[60vh] overflow-y-auto p-4">
+                {isLoading && <Skeleton className="h-[60vh] w-full" />}
                 {error && <p className="text-red-400">Failed to load log.</p>}
                 {messages.map((msg, index) => (
                     <span key={index} className="whitespace-pre-wrap break-all">
@@ -101,7 +101,7 @@ const RealtimeLogViewer = ({ wsUrl, onStatusUpdate }: { wsUrl: string | null, on
                 <span className={`h-2 w-2 rounded-full ${connectionStatus.color}`}></span>
                 {connectionStatus.text}
             </div>
-            <div ref={logContainerRef} className="font-mono text-xs bg-muted rounded-md h-full overflow-y-auto p-4">
+            <div ref={logContainerRef} className="font-mono text-xs bg-muted rounded-md h-[60vh] overflow-y-auto p-4">
                 {messages.length === 0 && readyState === ReadyState.OPEN && <p className="text-muted-foreground">Waiting for judge output...</p>}
                 {messages.map((msg, index) => (
                     <span key={index} className="whitespace-pre-wrap break-all">
@@ -155,7 +155,7 @@ export function AdminSubmissionLogViewer({ submission, problem, onStatusUpdate }
                     <CardDescription>Real-time output from the judge containers.</CardDescription>
                 </CardHeader>
                 <CardContent className="flex-1">
-                    <div className="font-mono text-xs bg-muted rounded-md h-full overflow-y-auto p-4 text-muted-foreground flex items-center justify-center">
+                    <div className="font-mono text-xs bg-muted rounded-md h-[60vh] overflow-y-auto p-4 text-muted-foreground flex items-center justify-center">
                         Submission is in queue. No logs to display yet.
                     </div>
                 </CardContent>
