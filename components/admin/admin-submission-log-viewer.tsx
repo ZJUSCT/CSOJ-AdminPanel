@@ -122,20 +122,13 @@ const RealtimeLogViewer = ({ wsUrl, onStatusUpdate }: { wsUrl: string | null, on
 export function AdminSubmissionLogViewer({ submission, problem, onStatusUpdate }: { submission?: Submission, problem?: Problem, onStatusUpdate: () => void }) {
     const [selectedContainerId, setSelectedContainerId] = useState<string | null>(null);
 
-    // This effect automatically selects the most recent container log tab.
-    // It runs ONLY when a new container is added to the submission,
-    // providing an "auto-follow" behavior without preventing the user from
-    // manually viewing older logs.
     useEffect(() => {
         if (submission?.containers && submission.containers.length > 0) {
             const lastContainer = submission.containers[submission.containers.length - 1];
-            // Only switch if the selected tab is not already the last one,
-            // to avoid unnecessary re-renders.
             if (selectedContainerId !== lastContainer.id) {
                 setSelectedContainerId(lastContainer.id);
             }
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [submission?.containers.length]);
 
     if (!submission || !problem) return <Card className="h-full flex flex-col"><CardHeader><CardTitle>Live Log</CardTitle></CardHeader><CardContent className="flex-1"><Skeleton className="h-full w-full" /></CardContent></Card>;
@@ -165,14 +158,17 @@ export function AdminSubmissionLogViewer({ submission, problem, onStatusUpdate }
 
     return (
         <Card className="flex flex-col h-full">
-            <CardHeader><CardTitle>Live Log</CardTitle><CardDescription>Real-time output from the judge containers.</CardDescription></CardHeader>
-            <CardContent className="flex flex-col flex-1">
+            <CardHeader>
+                <CardTitle>Live Log</CardTitle>
+                <CardDescription>Real-time output from the judge containers.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col flex-1 min-h-0">
                 <Tabs value={selectedContainerId ?? ""} onValueChange={setSelectedContainerId} className="w-full flex flex-col flex-1">
                     <TabsList className="grid w-full" style={{gridTemplateColumns: `repeat(${submission.containers.length}, minmax(0, 1fr))`}}>
                         {submission.containers.map((c, i) => <TabsTrigger key={c.id} value={c.id}>Step {i + 1}</TabsTrigger>)}
                     </TabsList>
                     {submission.containers.map(c => (
-                        <TabsContent key={c.id} value={c.id} className="mt-4 flex-1 min-h-0">
+                        <TabsContent key={c.id} value={c.id} className="mt-4 flex-1">
                             {c.status === 'Running' ?
                                 <RealtimeLogViewer wsUrl={getWsUrl(c.id)} onStatusUpdate={onStatusUpdate} /> :
                                 <StaticLogViewer submissionId={submission.id} containerId={c.id} />
