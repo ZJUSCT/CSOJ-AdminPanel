@@ -133,13 +133,13 @@ function SubmissionDetails({ submissionId }: { submissionId: string }) {
 	if (!submission) return <Skeleton className="h-screen w-full" />;
 
 	return (
-		<div className="grid gap-6 lg:grid-cols-3 items-stretch">
+		<div className="grid gap-6 lg:grid-cols-3 items-start">
 			<div className="lg:col-span-2">
 				<AdminSubmissionLogViewer submission={submission} problem={problem} onStatusUpdate={mutate} />
 			</div>
 
 			<div>
-				<Card className="flex flex-col h-full">
+				<Card className="flex flex-col">
 					<CardHeader><CardTitle>Submission Info</CardTitle></CardHeader>
 					<CardContent className="flex-1 space-y-4 text-sm overflow-y-auto">
 						<div className="flex items-center justify-between"><span className="text-muted-foreground flex items-center gap-2"><Hash />Status</span><SubmissionStatusBadge status={submission.status} /></div>
