@@ -172,7 +172,7 @@ export function AdminSubmissionLogViewer({ submission, problem, onStatusUpdate }
                         {submission.containers.map((c, i) => <TabsTrigger key={c.id} value={c.id}>Step {i + 1}</TabsTrigger>)}
                     </TabsList>
                     {submission.containers.map(c => (
-                        <TabsContent key={c.id} value={c.id} className="mt-4 flex-1 min-h-0">
+                        <TabsContent key={c.id} value={c.id} className="mt-4 flex-1">
                             {c.status === 'Running' ?
                                 <RealtimeLogViewer wsUrl={getWsUrl(c.id)} onStatusUpdate={onStatusUpdate} /> :
                                 <StaticLogViewer submissionId={submission.id} containerId={c.id} />
