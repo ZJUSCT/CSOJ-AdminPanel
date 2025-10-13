@@ -7,7 +7,6 @@ import { useTheme } from 'next-themes';
 import { format } from 'date-fns';
 import { TrendEntry } from '@/lib/types';
 
-// MODIFIED INTERFACE: Now requires contest start and end times
 interface EchartsTrendChartProps {
     trendData: TrendEntry[];
     contestStartTime: string | number | Date;
@@ -21,7 +20,6 @@ const EchartsTrendChart: React.FC<EchartsTrendChartProps> = ({
 }) => {
     const { theme } = useTheme();
 
-    // Memo 1: Generates the user score data series
     const userSeriesData: SeriesOption[] = useMemo(() => {
         if (!trendData || trendData.length === 0) {
             return [];
@@ -50,7 +48,6 @@ const EchartsTrendChart: React.FC<EchartsTrendChartProps> = ({
         
     }, [trendData, contestStartTime, contestEndTime]);
 
-    // Memo 2: Generates the complete chart configuration
     const chartOptions: EChartsOption = useMemo(() => {
         const isDark = theme === 'dark';
         const labelColor = isDark ? '#ccc' : '#333';
@@ -172,9 +169,9 @@ const EchartsTrendChart: React.FC<EchartsTrendChartProps> = ({
                 max: (value) => {
                     const finalMaxScore = Math.max(value.max, absoluteMaxScore);
                     const bufferedMax = finalMaxScore * 1.1;
-                    if (bufferedMax <= 1000 && bufferedMax > 0) return 1000;
-                    if (bufferedMax === 0) return 1000;
-                    return (Math.floor(bufferedMax / 1000) + 1) * 1000;
+                    if (bufferedMax <= 100 && bufferedMax > 0) return 100;
+                    if (bufferedMax === 0) return 100;
+                    return (Math.floor(bufferedMax / 100) + 1) * 100;
                 },
                 splitLine: { show: true, lineStyle: { color: lineColor, type: 'dashed' } },
             },

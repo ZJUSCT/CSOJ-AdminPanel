@@ -31,7 +31,7 @@ function ContestList() {
 
     const onSuccess = () => {
         mutate();
-        problemsMutate('/problems'); // Also refresh problems list
+        problemsMutate('/problems');
     };
 
     return (
@@ -79,7 +79,6 @@ function ContestList() {
     );
 }
 
-// MODIFIED COMPONENT: Now accepts the full 'contest' object
 function ContestTrendView({ contest }: { contest: Contest }) {
     const [numUsers, setNumUsers] = useState(20);
     const { data: leaderboardData, isLoading: leaderboardLoading } = useSWR<LeaderboardEntry[]>(`/contests/${contest.id}/leaderboard`, fetcher);
@@ -102,7 +101,6 @@ function ContestTrendView({ contest }: { contest: Contest }) {
                 <div className="h-[500px]">
                     {trendLoading ? <Skeleton className="h-full w-full" /> : 
                      trendData ? 
-                        // Pass the required start and end times to the chart component
                         <EchartsTrendChart 
                             trendData={trendData}
                             contestStartTime={contest.starttime}
@@ -230,7 +228,6 @@ function ContestDetailView({ contestId, view }: { contestId: string, view: strin
                 {view === 'announcements' && <AnnouncementManager contestId={contestId} />}
                 {view === 'assets' && <AssetManager assetType="contest" assetId={contestId} />}
                 {view === 'leaderboard' && <ContestLeaderboard contestId={contestId} />}
-                {/* Pass the full 'contest' object to the view */}
                 {view === 'trend' && <ContestTrendView contest={contest} />}
             </div>
         </div>
