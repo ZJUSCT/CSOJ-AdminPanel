@@ -41,7 +41,7 @@ function ContestList() {
                     <CardTitle>Contests</CardTitle>
                     <CardDescription>All contests loaded in the system.</CardDescription>
                 </div>
-                <ContestFormDialog onSuccess={onSuccess} trigger={<Button><PlusCircle /> Create Contest</Button>} />
+                <ContestFormDialog onSuccess={onSuccess} trigger={<Button><PlusCircle className="mr-2 h-4 w-4" /> Create Contest</Button>} />
             </CardHeader>
             <CardContent>
                 {isLoading ? <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 w-full" />)}</div> :
@@ -57,8 +57,8 @@ function ContestList() {
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical /></Button></DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
-                                                <ContestFormDialog contest={contest} onSuccess={onSuccess} trigger={<DropdownMenuItem onSelect={e => e.preventDefault()}><Edit /> Edit</DropdownMenuItem>} />
-                                                <DeleteContestButton contest={contest} onSuccess={onSuccess} trigger={<DropdownMenuItem onSelect={e => e.preventDefault()} className="text-destructive"><Trash /> Delete</DropdownMenuItem>} />
+                                                <ContestFormDialog contest={contest} onSuccess={onSuccess} trigger={<DropdownMenuItem onSelect={e => e.preventDefault()}><Edit className="mr-2 h-4 w-4" /> Edit</DropdownMenuItem>} />
+                                                <DeleteContestButton contest={contest} onSuccess={onSuccess} trigger={<DropdownMenuItem onSelect={e => e.preventDefault()} className="text-destructive"><Trash className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>} />
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </div>
@@ -68,7 +68,7 @@ function ContestList() {
                                     <div className="flex items-center gap-2"><Clock className="h-4 w-4" /><span>{format(new Date(contest.endtime), 'Pp')}</span></div>
                                 </CardContent>
                                 <CardFooter>
-                                    <Link href={`/contests?id=${contest.id}`} passHref><Button className="w-full">View Details</Button></Link>
+                                    <Link href={`/admin/contests?id=${contest.id}`} passHref><Button className="w-full">Manage Contest</Button></Link>
                                 </CardFooter>
                             </Card>
                         ))}
@@ -79,11 +79,13 @@ function ContestList() {
     );
 }
 
-function ContestTrendView({ contestId }: { contestId: string }) {
+// MODIFIED COMPONENT: Now accepts the full 'contest' object
+function ContestTrendView({ contest }: { contest: Contest }) {
     const [numUsers, setNumUsers] = useState(20);
-    const { data: leaderboardData, isLoading: leaderboardLoading } = useSWR<LeaderboardEntry[]>(`/contests/${contestId}/leaderboard`, fetcher);
-    const { data: trendData, isLoading: trendLoading } = useSWR<TrendEntry[]>(`/contests/${contestId}/trend?maxnum=${numUsers}`, fetcher);
+    const { data: leaderboardData, isLoading: leaderboardLoading } = useSWR<LeaderboardEntry[]>(`/contests/${contest.id}/leaderboard`, fetcher);
+    const { data: trendData, isLoading: trendLoading } = useSWR<TrendEntry[]>(`/contests/${contest.id}/trend?maxnum=${numUsers}`, fetcher, { refreshInterval: 30000 });
     const maxUsers = leaderboardData?.length ?? 100;
+    
     if (leaderboardLoading) return <Skeleton className="h-[550px] w-full" />;
 
     return (
@@ -98,12 +100,21 @@ function ContestTrendView({ contestId }: { contestId: string }) {
                     <input id="user-slider" type="range" min="1" max={maxUsers} value={numUsers} onChange={(e) => setNumUsers(Number(e.target.value))} className="w-full h-2 bg-primary/20 rounded-lg appearance-none cursor-pointer dark:bg-primary/30" />
                 </div>
                 <div className="h-[500px]">
-                    {trendLoading ? <Skeleton className="h-full w-full" /> : trendData ? <EchartsTrendChart trendData={trendData} /> : <div className="text-center text-muted-foreground">Could not load trend data.</div>}
+                    {trendLoading ? <Skeleton className="h-full w-full" /> : 
+                     trendData ? 
+                        // Pass the required start and end times to the chart component
+                        <EchartsTrendChart 
+                            trendData={trendData}
+                            contestStartTime={contest.starttime}
+                            contestEndTime={contest.endtime}
+                        /> : 
+                        <div className="flex items-center justify-center h-full text-center text-muted-foreground">Could not load trend data.</div>}
                 </div>
             </CardContent>
         </Card>
     )
 }
+
 
 function ContestLeaderboard({ contestId }: { contestId: string }) {
     const { data: contest } = useSWR<Contest>(`/contests/${contestId}`, fetcher);
@@ -147,7 +158,7 @@ function ContestProblemsView({ contest, allProblems, contests, onSuccess }: { co
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Problems in Contest</CardTitle>
-                <ProblemFormDialog contestId={contest.id} contests={contests} onSuccess={onSuccess} trigger={<Button><PlusCircle /> Add Problem</Button>} />
+                <ProblemFormDialog contestId={contest.id} contests={contests} onSuccess={onSuccess} trigger={<Button><PlusCircle className="mr-2 h-4 w-4" /> Add Problem</Button>} />
             </CardHeader>
             <CardContent>
                 {contestProblems.length === 0 ? <p className="text-muted-foreground text-center py-8">No problems added to this contest yet.</p> :
@@ -159,8 +170,8 @@ function ContestProblemsView({ contest, allProblems, contests, onSuccess }: { co
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical /></Button></DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
-                                            <ProblemFormDialog problem={problem} contestId={contest.id} contests={contests} onSuccess={onSuccess} trigger={<DropdownMenuItem onSelect={e => e.preventDefault()}><Edit /> Edit</DropdownMenuItem>} />
-                                            <DeleteProblemButton problem={problem} onSuccess={onSuccess} trigger={<DropdownMenuItem onSelect={e => e.preventDefault()} className="text-destructive"><Trash /> Delete</DropdownMenuItem>} />
+                                            <ProblemFormDialog problem={problem} contestId={contest.id} contests={contests} onSuccess={onSuccess} trigger={<DropdownMenuItem onSelect={e => e.preventDefault()}><Edit className="mr-2 h-4 w-4" /> Edit</DropdownMenuItem>} />
+                                            <DeleteProblemButton problem={problem} onSuccess={onSuccess} trigger={<DropdownMenuItem onSelect={e => e.preventDefault()} className="text-destructive"><Trash className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>} />
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                 </CardHeader>
@@ -191,7 +202,7 @@ function ContestDetailView({ contestId, view }: { contestId: string, view: strin
     
     const onContestDelete = () => {
         globalMutate('/contests');
-        router.push('/contests');
+        router.push('/admin/contests');
     }
 
     if (isLoading || !contest || problemsLoading || contestsLoading || !allProblems || !allContests) return <Skeleton className="h-96 w-full" />;
@@ -201,17 +212,17 @@ function ContestDetailView({ contestId, view }: { contestId: string, view: strin
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <h1 className="text-3xl font-bold">{contest.name}</h1>
                 <div className="flex items-center gap-2">
-                    <ContestFormDialog contest={contest} onSuccess={onSuccess} trigger={<Button variant="outline"><Edit/> Edit</Button>}/>
-                    <DeleteContestButton contest={contest} onSuccess={onContestDelete} trigger={<Button variant="destructive"><Trash/> Delete</Button>}/>
+                    <ContestFormDialog contest={contest} onSuccess={onSuccess} trigger={<Button variant="outline"><Edit className="mr-2 h-4 w-4" /> Edit</Button>}/>
+                    <DeleteContestButton contest={contest} onSuccess={onContestDelete} trigger={<Button variant="destructive"><Trash className="mr-2 h-4 w-4" /> Delete</Button>}/>
                 </div>
             </div>
             <Tabs value={view} className="w-full">
                 <TabsList className="grid w-full grid-cols-5">
-                    <TabsTrigger value="problems" asChild><Link href={`/contests?id=${contestId}&view=problems`}>Problems</Link></TabsTrigger>
-                    <TabsTrigger value="announcements" asChild><Link href={`/contests?id=${contestId}&view=announcements`}>Announcements</Link></TabsTrigger>
-                    <TabsTrigger value="assets" asChild><Link href={`/contests?id=${contestId}&view=assets`}>Assets</Link></TabsTrigger>
-                    <TabsTrigger value="leaderboard" asChild><Link href={`/contests?id=${contestId}&view=leaderboard`}>Leaderboard</Link></TabsTrigger>
-                    <TabsTrigger value="trend" asChild><Link href={`/contests?id=${contestId}&view=trend`}>Trend</Link></TabsTrigger>
+                    <TabsTrigger value="problems" asChild><Link href={`/admin/contests?id=${contestId}&view=problems`}><List className="mr-2 h-4 w-4" />Problems</Link></TabsTrigger>
+                    <TabsTrigger value="announcements" asChild><Link href={`/admin/contests?id=${contestId}&view=announcements`}><Megaphone className="mr-2 h-4 w-4" />Announcements</Link></TabsTrigger>
+                    <TabsTrigger value="assets" asChild><Link href={`/admin/contests?id=${contestId}&view=assets`}><Files className="mr-2 h-4 w-4" />Assets</Link></TabsTrigger>
+                    <TabsTrigger value="leaderboard" asChild><Link href={`/admin/contests?id=${contestId}&view=leaderboard`}><Trophy className="mr-2 h-4 w-4" />Leaderboard</Link></TabsTrigger>
+                    <TabsTrigger value="trend" asChild><Link href={`/admin/contests?id=${contestId}&view=trend`}><BarChart3 className="mr-2 h-4 w-4" />Trend</Link></TabsTrigger>
                 </TabsList>
             </Tabs>
             <div className="mt-6">
@@ -219,7 +230,8 @@ function ContestDetailView({ contestId, view }: { contestId: string, view: strin
                 {view === 'announcements' && <AnnouncementManager contestId={contestId} />}
                 {view === 'assets' && <AssetManager assetType="contest" assetId={contestId} />}
                 {view === 'leaderboard' && <ContestLeaderboard contestId={contestId} />}
-                {view === 'trend' && <ContestTrendView contestId={contestId} />}
+                {/* Pass the full 'contest' object to the view */}
+                {view === 'trend' && <ContestTrendView contest={contest} />}
             </div>
         </div>
     );
