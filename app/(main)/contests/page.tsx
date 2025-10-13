@@ -68,7 +68,7 @@ function ContestList() {
                                     <div className="flex items-center gap-2"><Clock className="h-4 w-4" /><span>{format(new Date(contest.endtime), 'Pp')}</span></div>
                                 </CardContent>
                                 <CardFooter>
-                                    <Link href={`/admin/contests?id=${contest.id}`} passHref><Button className="w-full">Manage Contest</Button></Link>
+                                    <Link href={`/contests?id=${contest.id}`} passHref><Button className="w-full">Manage Contest</Button></Link>
                                 </CardFooter>
                             </Card>
                         ))}
@@ -202,7 +202,7 @@ function ContestDetailView({ contestId, view }: { contestId: string, view: strin
     
     const onContestDelete = () => {
         globalMutate('/contests');
-        router.push('/admin/contests');
+        router.push('/contests');
     }
 
     if (isLoading || !contest || problemsLoading || contestsLoading || !allProblems || !allContests) return <Skeleton className="h-96 w-full" />;
@@ -218,11 +218,11 @@ function ContestDetailView({ contestId, view }: { contestId: string, view: strin
             </div>
             <Tabs value={view} className="w-full">
                 <TabsList className="grid w-full grid-cols-5">
-                    <TabsTrigger value="problems" asChild><Link href={`/admin/contests?id=${contestId}&view=problems`}><List className="mr-2 h-4 w-4" />Problems</Link></TabsTrigger>
-                    <TabsTrigger value="announcements" asChild><Link href={`/admin/contests?id=${contestId}&view=announcements`}><Megaphone className="mr-2 h-4 w-4" />Announcements</Link></TabsTrigger>
-                    <TabsTrigger value="assets" asChild><Link href={`/admin/contests?id=${contestId}&view=assets`}><Files className="mr-2 h-4 w-4" />Assets</Link></TabsTrigger>
-                    <TabsTrigger value="leaderboard" asChild><Link href={`/admin/contests?id=${contestId}&view=leaderboard`}><Trophy className="mr-2 h-4 w-4" />Leaderboard</Link></TabsTrigger>
-                    <TabsTrigger value="trend" asChild><Link href={`/admin/contests?id=${contestId}&view=trend`}><BarChart3 className="mr-2 h-4 w-4" />Trend</Link></TabsTrigger>
+                    <TabsTrigger value="problems" asChild><Link href={`/contests?id=${contestId}&view=problems`}><List className="mr-2 h-4 w-4" />Problems</Link></TabsTrigger>
+                    <TabsTrigger value="announcements" asChild><Link href={`/contests?id=${contestId}&view=announcements`}><Megaphone className="mr-2 h-4 w-4" />Announcements</Link></TabsTrigger>
+                    <TabsTrigger value="assets" asChild><Link href={`/contests?id=${contestId}&view=assets`}><Files className="mr-2 h-4 w-4" />Assets</Link></TabsTrigger>
+                    <TabsTrigger value="leaderboard" asChild><Link href={`/contests?id=${contestId}&view=leaderboard`}><Trophy className="mr-2 h-4 w-4" />Leaderboard</Link></TabsTrigger>
+                    <TabsTrigger value="trend" asChild><Link href={`/contests?id=${contestId}&view=trend`}><BarChart3 className="mr-2 h-4 w-4" />Trend</Link></TabsTrigger>
                 </TabsList>
             </Tabs>
             <div className="mt-6">
