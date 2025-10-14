@@ -56,6 +56,9 @@ importers:
       '@types/js-yaml':
         specifier: ^4.0.9
         version: 4.0.9
+      '@types/react-beautiful-dnd':
+        specifier: ^13.1.8
+        version: 13.1.8
       axios:
         specifier: ^1.12.2
         version: 1.12.2
@@ -117,9 +120,6 @@ importers:
       '@types/react':
         specifier: ^18.3.26
         version: 18.3.26
-      '@types/react-beautiful-dnd':
-        specifier: ^13.1.8
-        version: 13.1.8
       '@types/react-dom':
         specifier: ^18.3.7
         version: 18.3.7(@types/react@18.3.26)
