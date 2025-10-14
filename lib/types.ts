@@ -42,6 +42,7 @@ export interface WorkflowStep {
 export interface Problem {
     id: string;
     name: string;
+    level: string;
     starttime: string;
     endtime: string;
     max_submissions: number;

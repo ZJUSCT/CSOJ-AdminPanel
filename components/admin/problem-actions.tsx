@@ -22,6 +22,7 @@ import { format } from "date-fns";
 const problemSchema = z.object({
     id: z.string().min(1, "ID is required").regex(/^[a-z0-9-_]+$/, "ID must be lowercase alphanumeric with hyphens"),
     name: z.string().min(1, "Name is required"),
+    level: z.string().optional(),
     starttime: z.string().refine((val) => !isNaN(Date.parse(val)), "Invalid start time"),
     endtime: z.string().refine((val) => !isNaN(Date.parse(val)), "Invalid end time"),
     max_submissions: z.coerce.number().int().min(0, "Must be 0 or more"),
@@ -76,6 +77,7 @@ export function ProblemFormDialog({
         defaultValues: {
             id: problem?.id || '',
             name: problem?.name || '',
+            level: problem?.level || '',
             starttime: problem ? format(new Date(problem.starttime), "yyyy-MM-dd'T'HH:mm") : '',
             endtime: problem ? format(new Date(problem.endtime), "yyyy-MM-dd'T'HH:mm") : '',
             max_submissions: problem?.max_submissions || 0,
@@ -104,6 +106,7 @@ export function ProblemFormDialog({
             form.reset({
                 id: problem?.id || '',
                 name: problem?.name || '',
+                level: problem?.level || '',
                 starttime: problem ? format(new Date(problem.starttime), "yyyy-MM-dd'T'HH:mm") : '',
                 endtime: problem ? format(new Date(problem.endtime), "yyyy-MM-dd'T'HH:mm") : '',
                 max_submissions: problem?.max_submissions || 0,
@@ -188,6 +191,13 @@ export function ProblemFormDialog({
                             <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                             <FormField control={form.control} name="starttime" render={({ field }) => (<FormItem><FormLabel>Start Time</FormLabel><FormControl><Input type="datetime-local" {...field} /></FormControl><FormMessage /></FormItem>)} />
                             <FormField control={form.control} name="endtime" render={({ field }) => (<FormItem><FormLabel>End Time</FormLabel><FormControl><Input type="datetime-local" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                             <FormField control={form.control} name="level" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Level</FormLabel>
+                                    <FormControl><Input placeholder="e.g., Easy, Medium, Hard" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
                             <FormField control={form.control} name="cluster" render={({ field }) => (<FormItem><FormLabel>Cluster</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                             <FormField control={form.control} name="max_submissions" render={({ field }) => (<FormItem><FormLabel>Max Submissions</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
                              <FormField control={form.control} name="cpu" render={({ field }) => (<FormItem><FormLabel>CPU Cores</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />

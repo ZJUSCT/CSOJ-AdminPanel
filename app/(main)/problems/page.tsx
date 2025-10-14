@@ -11,7 +11,7 @@ import { Suspense } from 'react';
 import SubmissionStatusBadge from '@/components/shared/submission-status-badge';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { Bot, Calendar, Clock, Code2, Cpu, FolderSymlink, Hash, MemoryStick, Network, Server, Target, UploadCloud, PlusCircle, Edit, Trash2 } from 'lucide-react';
+import { Bot, Calendar, Clock, Code2, Cpu, FolderSymlink, Hash, MemoryStick, Network, Server, Target, UploadCloud, PlusCircle, Edit, Trash2, Star } from 'lucide-react';
 import { formatBytes } from '@/lib/utils';
 import React from 'react';
 import { ProblemFormDialog, DeleteProblemButton } from '@/components/admin/problem-actions';
@@ -116,6 +116,7 @@ function ProblemDetails({ problemId }: { problemId: string }) {
                 </CardHeader>
                 <CardContent>
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4 text-sm">
+                        <InfoItem icon={Star} label="Level" value={problem.level || 'Not Set'} />
                         <InfoItem icon={Calendar} label="Start Time" value={format(new Date(problem.starttime), "Pp")} />
                         <InfoItem icon={Clock} label="End Time" value={format(new Date(problem.endtime), "Pp")} />
                         <InfoItem icon={Server} label="Cluster" value={problem.cluster} />
@@ -123,7 +124,7 @@ function ProblemDetails({ problemId }: { problemId: string }) {
                         <InfoItem icon={Cpu} label="CPU" value={`${problem.cpu} Core(s)`} />
                         <InfoItem icon={MemoryStick} label="Memory" value={formatBytes(problem.memory * 1024 * 1024)} />
                         <InfoItem icon={Target} label="Score Mode" value={<Badge variant="secondary">{problem.score.mode}</Badge>} />
-                        <InfoItem icon={UploadCloud} label="Upload Limit" value={`${problem.upload.max_num} file(s), ${formatBytes(problem.upload.max_size * 1024)} max`} />
+                        <InfoItem icon={UploadCloud} label="Upload Limit" value={`${problem.upload.max_num} file(s), ${formatBytes(problem.upload.max_size * 1024 * 1024)} max`} />
                     </div>
                 </CardContent>
             </Card>
