@@ -113,6 +113,7 @@ export function ProblemFormDialog({
             workflow: yaml.load(values.workflow) as WorkflowStep[],
             upload: {
                 ...values.upload,
+                upload_files: values.upload.upload_files.split(',').map(s => s.trim()).filter(Boolean),
                 editor_files: values.upload.editor_files.split(',').map(s => s.trim()).filter(Boolean),
             }
         };
