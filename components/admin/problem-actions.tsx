@@ -37,6 +37,7 @@ const problemSchema = z.object({
         max_num: z.coerce.number().int().min(0),
         max_size: z.coerce.number().int().min(0),
         upload_form: z.boolean(),
+        upload_files: z.string(),
         editor: z.boolean(),
         editor_files: z.string(),
     }),
@@ -90,6 +91,7 @@ export function ProblemFormDialog({
                 max_num: problem?.upload?.max_num || 1,
                 max_size: problem?.upload?.max_size || 1024,
                 upload_form: problem?.upload?.upload_form ?? true,
+                upload_files: problem?.upload?.upload_files?.join(', ') || '',
                 editor: problem?.upload?.editor ?? false,
                 editor_files: problem?.upload?.editor_files?.join(', ') || '',
             },
@@ -172,17 +174,14 @@ export function ProblemFormDialog({
                              <h3 className="md:col-span-2 font-semibold">Upload Settings</h3>
                               <FormField control={form.control} name="upload.max_num" render={({ field }) => (<FormItem><FormLabel>Max Files</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
                               <FormField control={form.control} name="upload.max_size" render={({ field }) => (<FormItem><FormLabel>Max Size (KB)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                              <FormField control={form.control} name="upload.upload_form" render={({ field }) => (
+                                  <FormItem className="flex flex-row items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="!mt-0">Enable Upload Form</FormLabel></FormItem>
+                              )} />
+                              <FormField control={form.control} name="upload.editor" render={({ field }) => (
+                                  <FormItem className="flex flex-row items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="!mt-0">Enable Web Editor</FormLabel></FormItem>
+                              )} />
+                              <FormField control={form.control} name="upload.upload_files" render={({ field }) => (<FormItem><FormLabel>Upload Files (comma-separated)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                               <FormField control={form.control} name="upload.editor_files" render={({ field }) => (<FormItem><FormLabel>Editable Files (comma-separated)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                              <div className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow">
-                                <div className="space-y-4">
-                                    <FormField control={form.control} name="upload.upload_form" render={({ field }) => (
-                                        <FormItem className="flex flex-row items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="!mt-0">Enable Upload Form</FormLabel></FormItem>
-                                    )} />
-                                    <FormField control={form.control} name="upload.editor" render={({ field }) => (
-                                        <FormItem className="flex flex-row items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="!mt-0">Enable Web Editor</FormLabel></FormItem>
-                                    )} />
-                                </div>
-                              </div>
                         </div>
 
                         <FormField control={form.control} name="description" render={({ field }) => (
