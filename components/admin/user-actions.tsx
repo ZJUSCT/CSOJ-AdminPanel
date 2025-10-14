@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -66,6 +66,15 @@ export function EditUserDialog({ user, onUserUpdated }: { user: User, onUserUpda
 		resolver: zodResolver(editUserSchema),
 		defaultValues: { nickname: user.nickname, signature: user.signature || '' },
 	});
+
+    useEffect(() => {
+        if (open) {
+            form.reset({
+                nickname: user.nickname,
+                signature: user.signature || '',
+            });
+        }
+    }, [open, user, form]);
 
 	const onSubmit = async (values: z.infer<typeof editUserSchema>) => {
 		try {

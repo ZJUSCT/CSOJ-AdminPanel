@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -44,6 +44,15 @@ export function AnnouncementFormDialog({
             description: announcement?.description || '',
         },
     });
+
+    useEffect(() => {
+        if (open) {
+            form.reset({
+                title: announcement?.title || '',
+                description: announcement?.description || '',
+            });
+        }
+    }, [open, announcement, form]);
 
     const onSubmit = async (values: AnnouncementFormValues) => {
         try {

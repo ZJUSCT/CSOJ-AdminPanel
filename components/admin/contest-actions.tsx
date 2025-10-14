@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -49,6 +49,19 @@ export function ContestFormDialog({
             description: contest?.description || '',
         },
     });
+
+    useEffect(() => {
+        if (open) {
+            form.reset({
+                id: contest?.id || '',
+                name: contest?.name || '',
+                starttime: contest ? format(new Date(contest.starttime), "yyyy-MM-dd'T'HH:mm") : '',
+                endtime: contest ? format(new Date(contest.endtime), "yyyy-MM-dd'T'HH:mm") : '',
+                description: contest?.description || '',
+            });
+        }
+    }, [open, contest, form]);
+
 
     const onSubmit = async (values: ContestFormValues) => {
         const payload = {

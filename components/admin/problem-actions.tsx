@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -98,6 +98,35 @@ export function ProblemFormDialog({
             workflow: problem?.workflow ? yaml.dump(problem.workflow) : '- name: compile\n  image: gcc\n  steps:\n    - [ "gcc", "main.c", "-o", "main" ]\n',
         },
     });
+
+    useEffect(() => {
+        if (open) {
+            form.reset({
+                id: problem?.id || '',
+                name: problem?.name || '',
+                starttime: problem ? format(new Date(problem.starttime), "yyyy-MM-dd'T'HH:mm") : '',
+                endtime: problem ? format(new Date(problem.endtime), "yyyy-MM-dd'T'HH:mm") : '',
+                max_submissions: problem?.max_submissions || 0,
+                cluster: problem?.cluster || '',
+                cpu: problem?.cpu || 1,
+                memory: problem?.memory || 128,
+                description: problem?.description || '',
+                score: {
+                    mode: problem?.score?.mode || 'score',
+                    max_performance_score: problem?.score?.max_performance_score || 100,
+                },
+                upload: {
+                    max_num: problem?.upload?.max_num || 1,
+                    max_size: problem?.upload?.max_size || 1024,
+                    upload_form: problem?.upload?.upload_form ?? true,
+                    upload_files: problem?.upload?.upload_files?.join(', ') || '',
+                    editor: problem?.upload?.editor ?? false,
+                    editor_files: problem?.upload?.editor_files?.join(', ') || '',
+                },
+                workflow: problem?.workflow ? yaml.dump(problem.workflow) : '- name: compile\n  image: gcc\n  steps:\n    - [ "gcc", "main.c", "-o", "main" ]\n',
+            });
+        }
+    }, [open, problem, form]);
 
     const onSubmit = async (values: ProblemFormValues) => {
         const finalContestId = isEditing ? contestId : selectedContest;
