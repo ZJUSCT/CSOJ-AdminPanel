@@ -1,6 +1,6 @@
 "use client"
 import { useSearchParams } from 'next/navigation';
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { Contest, LeaderboardEntry, Problem, TrendEntry } from '@/lib/types';
 import api from '@/lib/api';
@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
-import { Calendar, Clock, Trophy, BarChart3, List, MoreVertical, Edit, Trash, PlusCircle, Files, Megaphone } from 'lucide-react';
+import { Calendar, Clock, Trophy, BarChart3, List, MoreVertical, Edit, Trash, PlusCircle, Files, Megaphone, Save, X, GripVertical } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import EchartsTrendChart from '@/components/admin/echarts-trend-chart';
@@ -20,6 +20,9 @@ import { DeleteProblemButton, ProblemFormDialog } from '@/components/admin/probl
 import { useRouter } from 'next/navigation';
 import { AssetManager } from '@/components/admin/asset-manager';
 import { AnnouncementManager } from '@/components/admin/announcement-manager';
+import { useToast } from '@/hooks/use-toast';
+import { DragDropContext, Draggable, DropResult } from 'react-beautiful-dnd';
+import { StrictModeDroppable } from '@/components/shared/strict-mode-droppable';
 
 const fetcher = (url: string) => api.get(url).then(res => res.data.data);
 
@@ -150,34 +153,107 @@ function ContestLeaderboard({ contestId }: { contestId: string }) {
 }
 
 function ContestProblemsView({ contest, allProblems, contests, onSuccess }: { contest: Contest, allProblems: Record<string, Problem>, contests: Contest[], onSuccess: () => void }) {
-    const contestProblems = contest.problem_ids.map(id => allProblems[id]).filter(Boolean);
+    const initialProblems = useMemo(() => contest.problem_ids.map(id => allProblems[id]).filter(Boolean), [contest.problem_ids, allProblems]);
+    const [orderedProblems, setOrderedProblems] = useState<Problem[]>(initialProblems);
+    const [isOrderChanged, setIsOrderChanged] = useState(false);
+    const { toast } = useToast();
+
+    useEffect(() => {
+        setOrderedProblems(contest.problem_ids.map(id => allProblems[id]).filter(Boolean));
+        setIsOrderChanged(false);
+    }, [contest, allProblems]);
+
+    const onDragEnd = (result: DropResult) => {
+        const { destination, source } = result;
+        if (!destination || (destination.droppableId === source.droppableId && destination.index === source.index)) {
+            return;
+        }
+
+        const newProblems = Array.from(orderedProblems);
+        const [reorderedItem] = newProblems.splice(source.index, 1);
+        newProblems.splice(destination.index, 0, reorderedItem);
+
+        setOrderedProblems(newProblems);
+        setIsOrderChanged(true);
+    };
+
+    const handleCancel = () => {
+        setOrderedProblems(initialProblems);
+        setIsOrderChanged(false);
+    };
+
+    const handleSaveOrder = async () => {
+        const problem_ids = orderedProblems.map(p => p.id);
+        try {
+            await api.put(`/contests/${contest.id}/problems/order`, { problem_ids });
+            toast({ title: "Problem order saved!" });
+            setIsOrderChanged(false);
+            onSuccess();
+        } catch (err: any) {
+            toast({ variant: 'destructive', title: 'Failed to save order', description: err.response?.data?.message });
+        }
+    };
 
     return (
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Problems in Contest</CardTitle>
-                <ProblemFormDialog contestId={contest.id} contests={contests} onSuccess={onSuccess} trigger={<Button><PlusCircle className="mr-2 h-4 w-4" /> Add Problem</Button>} />
+                <div>
+                    <CardTitle>Problems in Contest</CardTitle>
+                    <CardDescription>Drag and drop the cards to change the problem order.</CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                     {isOrderChanged && (
+                        <>
+                            <Button variant="outline" onClick={handleCancel}><X className="mr-2 h-4 w-4" /> Cancel</Button>
+                            <Button onClick={handleSaveOrder}><Save className="mr-2 h-4 w-4" /> Save Order</Button>
+                        </>
+                    )}
+                    <ProblemFormDialog contestId={contest.id} contests={contests} onSuccess={onSuccess} trigger={<Button><PlusCircle className="mr-2 h-4 w-4" /> Add Problem</Button>} />
+                </div>
             </CardHeader>
             <CardContent>
-                {contestProblems.length === 0 ? <p className="text-muted-foreground text-center py-8">No problems added to this contest yet.</p> :
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                        {contestProblems.map(problem => (
-                            <Card key={problem.id}>
-                                <CardHeader className="flex flex-row items-start justify-between">
-                                    <CardTitle className="text-base">{problem.name}</CardTitle>
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical /></Button></DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <ProblemFormDialog problem={problem} contestId={contest.id} contests={contests} onSuccess={onSuccess} trigger={<DropdownMenuItem onSelect={e => e.preventDefault()}><Edit className="mr-2 h-4 w-4" /> Edit</DropdownMenuItem>} />
-                                            <DeleteProblemButton problem={problem} onSuccess={onSuccess} trigger={<DropdownMenuItem onSelect={e => e.preventDefault()} className="text-destructive"><Trash className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>} />
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </CardHeader>
-                                <CardDescription className="px-6 pb-2 font-mono text-xs">{problem.id}</CardDescription>
-                                <CardFooter><Link href={`/problems?id=${problem.id}`} className="w-full"><Button size="sm" className="w-full">View Problem</Button></Link></CardFooter>
-                            </Card>
-                        ))}
-                    </div>
+                {orderedProblems.length === 0 ? <p className="text-muted-foreground text-center py-8">No problems added to this contest yet.</p> :
+                    <DragDropContext onDragEnd={onDragEnd}>
+                        <StrictModeDroppable droppableId="problems">
+                            {(provided) => (
+                                <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-2">
+                                    {orderedProblems.map((problem, index) => (
+                                        <Draggable key={problem.id} draggableId={problem.id} index={index}>
+                                            {(provided) => (
+                                                <Card
+                                                    ref={provided.innerRef}
+                                                    {...provided.draggableProps}
+                                                    className="flex items-center p-4"
+                                                >
+                                                    <div {...provided.dragHandleProps} className="p-2 cursor-grab text-muted-foreground">
+                                                        <GripVertical className="h-5 w-5" />
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center justify-between">
+                                                            <div>
+                                                                <Link href={`/problems?id=${problem.id}`} className="hover:underline font-semibold">{problem.name}</Link>
+                                                                <p className="font-mono text-xs text-muted-foreground">{problem.id}</p>
+                                                            </div>
+                                                            <div className="flex items-center gap-1">
+                                                                <DropdownMenu>
+                                                                    <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical /></Button></DropdownMenuTrigger>
+                                                                    <DropdownMenuContent align="end">
+                                                                        <ProblemFormDialog problem={problem} contestId={contest.id} contests={contests} onSuccess={onSuccess} trigger={<DropdownMenuItem onSelect={e => e.preventDefault()}><Edit className="mr-2 h-4 w-4" /> Edit</DropdownMenuItem>} />
+                                                                        <DeleteProblemButton problem={problem} onSuccess={onSuccess} trigger={<DropdownMenuItem onSelect={e => e.preventDefault()} className="text-destructive"><Trash className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>} />
+                                                                    </DropdownMenuContent>
+                                                                </DropdownMenu>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </Card>
+                                            )}
+                                        </Draggable>
+                                    ))}
+                                    {provided.placeholder}
+                                </div>
+                            )}
+                        </StrictModeDroppable>
+                    </DragDropContext>
                 }
             </CardContent>
         </Card>
