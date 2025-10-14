@@ -134,7 +134,7 @@ export function EditUserDialog({ user, onUserUpdated }: { user: User, onUserUpda
                         <FormField control={form.control} name="ban_reason" render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Ban Reason</FormLabel>
-                                <FormControl><Textarea {...field} /></FormControl>
+                                <FormControl><Textarea placeholder="Enter the reason for the ban..." {...field} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )} />
