@@ -11,6 +11,9 @@ import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 import { User } from "@/lib/types";
 import { DropdownMenuItem } from "../ui/dropdown-menu";
+import { Textarea } from "../ui/textarea";
+import { Separator } from "../ui/separator";
+import { format } from "date-fns";
 
 // --- Create User ---
 const createUserSchema = z.object({
@@ -58,13 +61,20 @@ export function CreateUserDialog({ onUserCreated }: { onUserCreated: () => void 
 const editUserSchema = z.object({
 	nickname: z.string().min(1, "Nickname is required"),
 	signature: z.string().optional(),
+    ban_reason: z.string().optional(),
+    banned_until: z.string().optional(),
 });
 export function EditUserDialog({ user, onUserUpdated }: { user: User, onUserUpdated: () => void }) {
 	const [open, setOpen] = useState(false);
 	const { toast } = useToast();
 	const form = useForm<z.infer<typeof editUserSchema>>({
 		resolver: zodResolver(editUserSchema),
-		defaultValues: { nickname: user.nickname, signature: user.signature || '' },
+		defaultValues: {
+            nickname: user.nickname,
+            signature: user.signature || '',
+            ban_reason: user.ban_reason || '',
+            banned_until: user.banned_until ? format(new Date(user.banned_until), "yyyy-MM-dd'T'HH:mm") : '',
+        },
 	});
 
     useEffect(() => {
@@ -72,13 +82,27 @@ export function EditUserDialog({ user, onUserUpdated }: { user: User, onUserUpda
             form.reset({
                 nickname: user.nickname,
                 signature: user.signature || '',
+                ban_reason: user.ban_reason || '',
+                banned_until: user.banned_until ? format(new Date(user.banned_until), "yyyy-MM-dd'T'HH:mm") : '',
             });
         }
     }, [open, user, form]);
 
 	const onSubmit = async (values: z.infer<typeof editUserSchema>) => {
+        const payload: any = {
+            nickname: values.nickname,
+            signature: values.signature,
+            ban_reason: values.ban_reason,
+        };
+        // Handle time: convert local time to ISO string for backend, or send empty string to unban
+        if (values.banned_until) {
+            payload.banned_until = new Date(values.banned_until).toISOString();
+        } else {
+            payload.banned_until = ""; // Signal to backend to unban
+        }
+
 		try {
-			await api.patch(`/users/${user.id}`, values);
+			await api.patch(`/users/${user.id}`, payload);
 			toast({ title: "User Updated", description: "User profile has been updated." });
 			onUserUpdated();
 			setOpen(false);
@@ -96,6 +120,25 @@ export function EditUserDialog({ user, onUserUpdated }: { user: User, onUserUpda
 					<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
 						<FormField control={form.control} name="nickname" render={({ field }) => (<FormItem><FormLabel>Nickname</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
 						<FormField control={form.control} name="signature" render={({ field }) => (<FormItem><FormLabel>Signature</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+
+                        <Separator className="my-4" />
+                        <h3 className="text-lg font-semibold">Ban Controls</h3>
+                        <p className="text-sm text-muted-foreground">To unban a user, clear the "Banned Until" date.</p>
+                        <FormField control={form.control} name="banned_until" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Banned Until</FormLabel>
+                                <FormControl><Input type="datetime-local" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                        <FormField control={form.control} name="ban_reason" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Ban Reason</FormLabel>
+                                <FormControl><Textarea {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+
 						<DialogFooter><Button type="submit" disabled={form.formState.isSubmitting}>{form.formState.isSubmitting ? "Saving..." : "Save Changes"}</Button></DialogFooter>
 					</form>
 				</Form>

@@ -18,6 +18,7 @@ import { format } from "date-fns";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 
 const fetcher = (url: string) => api.get(url).then(res => res.data.data);
 
@@ -76,7 +77,12 @@ function UserList() {
                             {users?.map(user => (
                                 <TableRow key={user.id}>
                                     <TableCell><Link href={`/users?id=${user.id}`} className="font-mono text-primary hover:underline">{user.id}</Link></TableCell>
-                                    <TableCell>{user.username}</TableCell>
+                                    <TableCell className="flex items-center gap-2">
+                                        {user.username}
+                                        {user.banned_until && new Date(user.banned_until) > new Date() && (
+                                            <Badge variant="destructive">Banned</Badge>
+                                        )}
+                                    </TableCell>
                                     <TableCell>{user.nickname}</TableCell>
                                     <TableCell className="text-right">
                                         <DropdownMenu>
@@ -174,14 +180,27 @@ function UserDetails({ userId }: { userId: string }) {
     return (
         <div className="space-y-6">
             <Card>
-                <CardHeader className="flex flex-row items-center gap-4">
+                <CardHeader className="flex flex-row items-start gap-4">
                     <Avatar className="h-16 w-16">
                         <AvatarImage src={user?.avatar_url} alt={user?.nickname} />
                         <AvatarFallback>{user ? getInitials(user.nickname) : '?'}</AvatarFallback>
                     </Avatar>
-                    <div>
-                        <CardTitle className="text-2xl">{user?.nickname}</CardTitle>
-                        <CardDescription>@{user?.username} ({user?.id})</CardDescription>
+                    <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                             <div>
+                                <CardTitle className="text-2xl">{user?.nickname}</CardTitle>
+                                <CardDescription>@{user?.username} ({user?.id})</CardDescription>
+                             </div>
+                             {user?.banned_until && new Date(user.banned_until) > new Date() && (
+                                <Badge variant="destructive" className="text-base">BANNED</Badge>
+                             )}
+                        </div>
+                        {user?.banned_until && new Date(user.banned_until) > new Date() && (
+                             <div className="mt-2 border-l-4 border-destructive pl-4">
+                                 <p className="text-sm font-semibold">Ban Reason: <span className="font-normal">{user.ban_reason || "No reason provided."}</span></p>
+                                 <p className="text-sm font-semibold">Banned Until: <span className="font-normal">{format(new Date(user.banned_until), 'Pp')}</span></p>
+                             </div>
+                         )}
                     </div>
                 </CardHeader>
             </Card>
