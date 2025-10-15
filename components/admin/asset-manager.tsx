@@ -68,7 +68,7 @@ export function AssetManager({ assetType, assetId }: AssetManagerProps) {
     };
 
     const handleDownload = useCallback(async (asset: AssetFile) => {
-        const downloadUrl = `/assets/${assetType}s/${assetId}/${asset.path}`;
+        const downloadUrl = `/assets/${assetType}s/${assetId}/index.assets/${asset.path}`;
         try {
             toast({ title: `Preparing download for ${asset.name}...` });
             const response = await api.get(downloadUrl, {
