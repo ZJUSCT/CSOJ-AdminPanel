@@ -64,7 +64,7 @@ const editUserSchema = z.object({
     ban_reason: z.string().optional(),
     banned_until: z.string().optional(),
 });
-export function EditUserDialog({ user, onUserUpdated }: { user: User, onUserUpdated: () => void }) {
+export function EditUserDialog({ user, onUserUpdated, trigger }: { user: User, onUserUpdated: () => void, trigger: React.ReactNode }) {
 	const [open, setOpen] = useState(false);
 	const { toast } = useToast();
 	const form = useForm<z.infer<typeof editUserSchema>>({
@@ -113,7 +113,7 @@ export function EditUserDialog({ user, onUserUpdated }: { user: User, onUserUpda
 
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
-			<DialogTrigger asChild><span className="w-full text-left">Edit Profile</span></DialogTrigger>
+			<DialogTrigger asChild>{trigger}</DialogTrigger>
 			<DialogContent>
 				<DialogHeader><DialogTitle>Edit Profile for @{user.username}</DialogTitle></DialogHeader>
 				<Form {...form}>
@@ -150,7 +150,7 @@ export function EditUserDialog({ user, onUserUpdated }: { user: User, onUserUpda
 
 // --- Reset Password ---
 const resetPasswordSchema = z.object({ password: z.string().min(6, "Password must be at least 6 characters") });
-export function ResetPasswordDialog({ userId }: { userId: string }) {
+export function ResetPasswordDialog({ userId, trigger }: { userId: string, trigger: React.ReactNode }) {
 	const [open, setOpen] = useState(false);
 	const { toast } = useToast();
 	const form = useForm<z.infer<typeof resetPasswordSchema>>({ resolver: zodResolver(resetPasswordSchema), defaultValues: { password: '' } });
@@ -168,7 +168,7 @@ export function ResetPasswordDialog({ userId }: { userId: string }) {
 
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
-			<DialogTrigger asChild><span className="w-full text-left">Reset Password</span></DialogTrigger>
+			<DialogTrigger asChild>{trigger}</DialogTrigger>
 			<DialogContent>
 				<DialogHeader><DialogTitle>Reset Password</DialogTitle></DialogHeader>
 				<Form {...form}>
@@ -184,7 +184,7 @@ export function ResetPasswordDialog({ userId }: { userId: string }) {
 
 // --- Register for Contest ---
 const registerContestSchema = z.object({ contest_id: z.string().min(1, "Contest ID is required") });
-export function RegisterContestDialog({ userId }: { userId: string }) {
+export function RegisterContestDialog({ userId, trigger }: { userId: string, trigger: React.ReactNode }) {
 	const [open, setOpen] = useState(false);
 	const { toast } = useToast();
 	const form = useForm<z.infer<typeof registerContestSchema>>({ resolver: zodResolver(registerContestSchema), defaultValues: { contest_id: '' } });
@@ -201,7 +201,7 @@ export function RegisterContestDialog({ userId }: { userId: string }) {
 	};
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
-			<DialogTrigger asChild><span className="w-full text-left">Register for Contest</span></DialogTrigger>
+			<DialogTrigger asChild>{trigger}</DialogTrigger>
 			<DialogContent>
 				<DialogHeader><DialogTitle>Register User for Contest</DialogTitle></DialogHeader>
 				<Form {...form}>

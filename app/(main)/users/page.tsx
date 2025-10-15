@@ -94,9 +94,19 @@ function UserList() {
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
                                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}><EditUserDialog user={user} onUserUpdated={mutate} /></DropdownMenuItem>
-                                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}><ResetPasswordDialog userId={user.id} /></DropdownMenuItem>
-                                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}><RegisterContestDialog userId={user.id} /></DropdownMenuItem>
+                                                <EditUserDialog 
+                                                    user={user} 
+                                                    onUserUpdated={mutate} 
+                                                    trigger={<DropdownMenuItem onSelect={(e) => e.preventDefault()}>Edit Profile</DropdownMenuItem>} 
+                                                />
+                                                <ResetPasswordDialog 
+                                                    userId={user.id} 
+                                                    trigger={<DropdownMenuItem onSelect={(e) => e.preventDefault()}>Reset Password</DropdownMenuItem>} 
+                                                />
+                                                <RegisterContestDialog 
+                                                    userId={user.id} 
+                                                    trigger={<DropdownMenuItem onSelect={(e) => e.preventDefault()}>Register for Contest</DropdownMenuItem>}
+                                                />
                                                 <DropdownMenuSeparator />
                                                 <DeleteUserMenuItem userId={user.id} onUserDeleted={mutate} />
                                             </DropdownMenuContent>
@@ -112,6 +122,7 @@ function UserList() {
     );
 }
 
+// ... (Rest of the file remains the same)
 function UserContestHistory({ userId }: { userId: string }) {
     const [selectedContestId, setSelectedContestId] = useState<string | undefined>();
     const { data: contestsData, isLoading: contestsLoading } = useSWR<Record<string, Contest>>('/contests', fetcher);
