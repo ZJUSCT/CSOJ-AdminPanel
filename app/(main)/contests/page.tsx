@@ -125,7 +125,9 @@ function ContestLeaderboard({ contestId }: { contestId: string }) {
     if (isLoading || !contest) return <Skeleton className="h-64 w-full" />;
     if (!leaderboard || leaderboard.length === 0) return <p className="text-muted-foreground text-center py-8">No scores recorded yet.</p>;
     
-    let visibleRank = 0;
+    let rankToDisplay = 0;
+    let realRankCounter = 0;
+    let previousScore = -Infinity;
 
     return (
         <Card>
@@ -142,10 +144,17 @@ function ContestLeaderboard({ contestId }: { contestId: string }) {
                     <TableBody>
                         {leaderboard.map((entry) => {
                             const isRankDisabled = entry.disable_rank;
+                            let displayRank: number | string = '-';
+
                             if (!isRankDisabled) {
-                                visibleRank++;
+                                realRankCounter++;
+                                // Update rank only when the score is different from the previous entry's score
+                                if (entry.total_score !== previousScore) {
+                                    rankToDisplay = realRankCounter;
+                                }
+                                displayRank = rankToDisplay;
+                                previousScore = entry.total_score;
                             }
-                            const displayRank = isRankDisabled ? '-' : visibleRank;
                             
                             return (
                                 <TableRow key={entry.user_id} className={cn(isRankDisabled && "text-muted-foreground")}>
