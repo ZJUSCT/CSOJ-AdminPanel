@@ -113,16 +113,18 @@ function SubmissionsList() {
 
 function SubmissionDetails({ submissionId }: { submissionId: string }) {
 	const { toast } = useToast();
-	const { data: submission, mutate } = useSWR<Submission>(`/submissions/${submissionId}`, fetcher, {
+	const { data: submission, error: submissionError, isLoading: isSubmissionLoading, mutate } = useSWR<Submission>(`/submissions/${submissionId}`, fetcher, {
 		refreshInterval: (data) => (data?.status === 'Queued' || data?.status === 'Running' ? 2000 : 0),
 	});
-	const { data: problem } = useSWR<Problem>(submission ? `/problems/${submission.problem_id}` : null, fetcher);
+	const { data: problem } = useSWR<Problem>(submission ? `/problems/${submission.problem_id}` : null, fetcher, {
+        shouldRetryOnError: false // Prevent retrying if the problem is not found (404)
+    });
 
 	const handleAction = async (action: 'rejudge' | 'interrupt' | 'delete' | 'validity', payload?: any) => {
 		const endpoint = action === 'validity' ? `/submissions/${submissionId}/validity` : `/submissions/${submissionId}/${action}`;
 		const method = action === 'validity' ? 'patch' : 'post';
 		try {
-			const apiCall = action === 'delete' ? api.delete(endpoint) : api[method](endpoint, payload);
+			const apiCall = action === 'delete' ? api.delete(endpoint) : api[method as 'post' | 'patch'](endpoint, payload);
 			await apiCall;
 			toast({ title: 'Success', description: `Action '${action}' completed successfully.` });
 			mutate();
@@ -130,8 +132,10 @@ function SubmissionDetails({ submissionId }: { submissionId: string }) {
 			toast({ variant: 'destructive', title: 'Error', description: err.response?.data?.message || `Failed to perform action '${action}'.` });
 		}
 	};
-
-	if (!submission) return <Skeleton className="h-screen w-full" />;
+    
+    if (isSubmissionLoading) return <Skeleton className="h-screen w-full" />;
+	if (submissionError) return <div>Failed to load submission.</div>;
+	if (!submission) return <div>Submission not found.</div>;
 
 	const markdownInfo = submission.info?.markdown;
 
