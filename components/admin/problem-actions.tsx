@@ -213,7 +213,7 @@ export function ProblemFormDialog({
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-md">
                              <h3 className="md:col-span-2 font-semibold">Upload Settings</h3>
                               <FormField control={form.control} name="upload.max_num" render={({ field }) => (<FormItem><FormLabel>Max Files</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                              <FormField control={form.control} name="upload.max_size" render={({ field }) => (<FormItem><FormLabel>Max Size (KB)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                              <FormField control={form.control} name="upload.max_size" render={({ field }) => (<FormItem><FormLabel>Max Size (MB)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>)} />
                               <FormField control={form.control} name="upload.upload_form" render={({ field }) => (
                                   <FormItem className="flex flex-row items-center space-x-2 space-y-0"><FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel className="!mt-0">Enable Upload Form</FormLabel></FormItem>
                               )} />
