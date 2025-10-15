@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Folder, File, Trash2, Upload, ExternalLink } from 'lucide-react';
+import { Folder, File, Trash2, Upload, Download } from 'lucide-react';
 import { Input } from '../ui/input';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
 
@@ -42,8 +42,6 @@ export function AssetManager({ assetType, assetId }: AssetManagerProps) {
         for (let i = 0; i < selectedFiles.length; i++) {
             formData.append('files', selectedFiles[i]);
         }
-        // This could be extended to allow uploading to subdirectories
-        // formData.append('path', 'some/sub/dir'); 
 
         try {
             await api.post(assetUrl, formData, {
@@ -69,12 +67,46 @@ export function AssetManager({ assetType, assetId }: AssetManagerProps) {
         }
     };
 
-    if (error) return <div>Failed to load assets.</div>;
+    const handleDownload = useCallback(async (asset: AssetFile) => {
+        const downloadUrl = `/assets/${assetType}s/${assetId}/${asset.path}`;
+        try {
+            toast({ title: `Preparing download for ${asset.name}...` });
+            const response = await api.get(downloadUrl, {
+                responseType: 'blob',
+            });
 
-    // The backend serves assets under /api/v1/assets/[contests|problems]/:id/*assetpath but requires auth.
-    // The admin panel doesn't have auth, so we need a way to view assets.
-    // Let's assume the user-facing asset URL works for viewing.
-    const publicAssetBaseUrl = `/api/v1/assets/${assetType}s/${assetId}/`;
+            const blob = new Blob([response.data], { type: response.headers['content-type'] });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', asset.name);
+            document.body.appendChild(link);
+            link.click();
+
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (err: any) {
+            let description = 'Could not download the file.';
+            if (err.response?.data instanceof Blob) {
+                try {
+                    const errorText = await err.response.data.text();
+                    const errorJson = JSON.parse(errorText);
+                    description = errorJson.message || description;
+                } catch (e) {
+                    // Not a JSON error, stick with the default message.
+                }
+            } else if (err.response?.data?.message) {
+                description = err.response.data.message;
+            }
+            toast({
+                variant: 'destructive',
+                title: 'Download Failed',
+                description: description,
+            });
+        }
+    }, [assetType, assetId, toast]);
+
+    if (error) return <div>Failed to load assets.</div>;
 
     return (
         <Card>
@@ -110,10 +142,8 @@ export function AssetManager({ assetType, assetId }: AssetManagerProps) {
                                     <TableCell>{format(new Date(asset.mod_time), 'Pp')}</TableCell>
                                     <TableCell className="text-right">
                                         {!asset.is_dir && (
-                                            <Button variant="ghost" size="icon" asChild>
-                                                <a href={`${publicAssetBaseUrl}${asset.path}`} target="_blank" rel="noopener noreferrer" title="Open in new tab (requires auth cookie if not public)">
-                                                    <ExternalLink className="h-4 w-4" />
-                                                </a>
+                                            <Button variant="ghost" size="icon" onClick={() => handleDownload(asset)} title="Download file">
+                                                <Download className="h-4 w-4" />
                                             </Button>
                                         )}
                                         <AlertDialog>
