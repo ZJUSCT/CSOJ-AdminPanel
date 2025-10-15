@@ -122,9 +122,8 @@ function UserList() {
     );
 }
 
-// ... (Rest of the file remains the same)
 function UserContestHistory({ userId }: { userId: string }) {
-    const [selectedContestId, setSelectedContestId] = useState<string | undefined>();
+    const [selectedContestId, setSelectedContestId] = useState<string>();
     const { data: contestsData, isLoading: contestsLoading } = useSWR<Record<string, Contest>>('/contests', fetcher);
     const { data: history, isLoading: historyLoading } = useSWR<ScoreHistoryPoint[]>(
         selectedContestId ? `/users/${userId}/history?contest_id=${selectedContestId}` : null,

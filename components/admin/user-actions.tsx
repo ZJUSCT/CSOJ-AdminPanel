@@ -5,27 +5,29 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 import { User } from "@/lib/types";
-import { DropdownMenuItem } from "../ui/dropdown-menu";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Textarea } from "../ui/textarea";
 import { Separator } from "../ui/separator";
 import { format } from "date-fns";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // --- Create User ---
 const createUserSchema = z.object({
 	username: z.string().min(1, "Username is required"),
 	nickname: z.string().min(1, "Nickname is required"),
 	password: z.string().min(6, "Password must be at least 6 characters"),
+	disable_rank: z.boolean().default(false).optional(),
 });
 
 export function CreateUserDialog({ onUserCreated }: { onUserCreated: () => void }) {
 	const [open, setOpen] = useState(false);
 	const { toast } = useToast();
-	const form = useForm<z.infer<typeof createUserSchema>>({ resolver: zodResolver(createUserSchema), defaultValues: { username: '', nickname: '', password: '' } });
+	const form = useForm<z.infer<typeof createUserSchema>>({ resolver: zodResolver(createUserSchema), defaultValues: { username: '', nickname: '', password: '', disable_rank: false } });
 
 	const onSubmit = async (values: z.infer<typeof createUserSchema>) => {
 		try {
@@ -49,6 +51,23 @@ export function CreateUserDialog({ onUserCreated }: { onUserCreated: () => void 
 						<FormField control={form.control} name="username" render={({ field }) => (<FormItem><FormLabel>Username</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
 						<FormField control={form.control} name="nickname" render={({ field }) => (<FormItem><FormLabel>Nickname</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
 						<FormField control={form.control} name="password" render={({ field }) => (<FormItem><FormLabel>Password</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>)} />
+						<FormField
+							control={form.control}
+							name="disable_rank"
+							render={({ field }) => (
+								<FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
+									<FormControl>
+										<Checkbox
+											checked={field.value}
+											onCheckedChange={field.onChange}
+										/>
+									</FormControl>
+									<div className="space-y-1 leading-none">
+										<FormLabel>Disable Ranking</FormLabel>
+										<FormDescription>If checked, this user will not affect other users' rankings.</FormDescription>
+									</div>
+								</FormItem>
+							)} />
 						<DialogFooter><Button type="submit" disabled={form.formState.isSubmitting}>{form.formState.isSubmitting ? "Creating..." : "Create"}</Button></DialogFooter>
 					</form>
 				</Form>
@@ -63,6 +82,7 @@ const editUserSchema = z.object({
 	signature: z.string().optional(),
     ban_reason: z.string().optional(),
     banned_until: z.string().optional(),
+    disable_rank: z.boolean().optional(),
 });
 export function EditUserDialog({ user, onUserUpdated, trigger }: { user: User, onUserUpdated: () => void, trigger: React.ReactNode }) {
 	const [open, setOpen] = useState(false);
@@ -74,6 +94,7 @@ export function EditUserDialog({ user, onUserUpdated, trigger }: { user: User, o
             signature: user.signature || '',
             ban_reason: user.ban_reason || '',
             banned_until: user.banned_until ? format(new Date(user.banned_until), "yyyy-MM-dd'T'HH:mm") : '',
+            disable_rank: user.disable_rank,
         },
 	});
 
@@ -84,6 +105,7 @@ export function EditUserDialog({ user, onUserUpdated, trigger }: { user: User, o
                 signature: user.signature || '',
                 ban_reason: user.ban_reason || '',
                 banned_until: user.banned_until ? format(new Date(user.banned_until), "yyyy-MM-dd'T'HH:mm") : '',
+                disable_rank: user.disable_rank,
             });
         }
     }, [open, user, form]);
@@ -93,6 +115,7 @@ export function EditUserDialog({ user, onUserUpdated, trigger }: { user: User, o
             nickname: values.nickname,
             signature: values.signature,
             ban_reason: values.ban_reason,
+            disable_rank: values.disable_rank,
         };
         // Handle time: convert local time to ISO string for backend, or send empty string to unban
         if (values.banned_until) {
@@ -120,6 +143,22 @@ export function EditUserDialog({ user, onUserUpdated, trigger }: { user: User, o
 					<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
 						<FormField control={form.control} name="nickname" render={({ field }) => (<FormItem><FormLabel>Nickname</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
 						<FormField control={form.control} name="signature" render={({ field }) => (<FormItem><FormLabel>Signature</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+						<FormField
+							control={form.control}
+							name="disable_rank"
+							render={({ field }) => (
+								<FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
+									<FormControl>
+										<Checkbox
+											checked={field.value}
+											onCheckedChange={field.onChange} />
+									</FormControl>
+									<div className="space-y-1 leading-none">
+										<FormLabel>Disable Ranking</FormLabel>
+										<FormDescription>If checked, this user will appear in leaderboards but will not affect other users' rankings.</FormDescription>
+									</div>
+								</FormItem>
+							)} />
 
                         <Separator className="my-4" />
                         <h3 className="text-lg font-semibold">Ban Controls</h3>

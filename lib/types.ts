@@ -8,6 +8,7 @@ export interface User {
   avatar_url: string;
   banned_until: string | null;
   ban_reason: string;
+  disable_rank: boolean;
 }
 
 export interface Announcement {
