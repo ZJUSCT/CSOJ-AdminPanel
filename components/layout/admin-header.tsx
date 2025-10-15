@@ -28,7 +28,7 @@ export function AdminHeader() {
         const data = response.data.data;
         toast({
             title: "Reload Successful",
-            description: `${data.contests_loaded} contests, ${data.problems_loaded} problems loaded. ${data.submissions_deleted} submissions deleted.`
+            description: `${data.contests_loaded} contests, ${data.problems_loaded} problems loaded.`
         });
         // Mutate key endpoints to refresh data across the app
         mutate('/contests');
