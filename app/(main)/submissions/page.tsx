@@ -157,10 +157,7 @@ function SubmissionDetails({ submissionId }: { submissionId: string }) {
                             <>
                                 <Separator className="my-4" />
                                 <div className="space-y-2">
-                                    <h3 className="font-semibold tracking-tight">Judge Markdown Output</h3>
-									<div className="p-4 bg-muted rounded-md border">
-                                    	<MarkdownViewer content={markdownInfo as string} />
-									</div>
+                                    <MarkdownViewer content={markdownInfo as string} />
                                 </div>
                             </>
                         )}
