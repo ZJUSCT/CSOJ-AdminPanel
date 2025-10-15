@@ -20,6 +20,7 @@ import { PaginationControls } from '@/components/shared/pagination-controls';
 import { SubmissionTableActions } from '@/components/admin/submission-table-actions';
 import { RefreshIntervalSelector } from '@/components/shared/refresh-interval-selector';
 import { Separator } from '@/components/ui/separator';
+import MarkdownViewer from '@/components/shared/markdown-viewer';
 
 const fetcher = (url: string) => api.get(url).then(res => res.data.data);
 
@@ -132,6 +133,8 @@ function SubmissionDetails({ submissionId }: { submissionId: string }) {
 
 	if (!submission) return <Skeleton className="h-screen w-full" />;
 
+	const markdownInfo = submission.info?.markdown;
+
 	return (
 		<div className="grid gap-6 lg:grid-cols-3 items-start">
 			<div className="lg:col-span-2">
@@ -150,17 +153,29 @@ function SubmissionDetails({ submissionId }: { submissionId: string }) {
 						<div className="flex items-center justify-between"><span className="text-muted-foreground flex items-center gap-2"><Layers />Cluster</span><span>{submission.cluster}</span></div>
 						<div className="flex items-center justify-between"><span className="text-muted-foreground flex items-center gap-2"><Server />Node</span><span>{submission.node || 'N/A'}</span></div>
 
+						{markdownInfo && (
+                            <>
+                                <Separator className="my-4" />
+                                <div className="space-y-2">
+                                    <h3 className="font-semibold tracking-tight">Judge Markdown Output</h3>
+									<div className="p-4 bg-muted rounded-md border">
+                                    	<MarkdownViewer content={markdownInfo as string} />
+									</div>
+                                </div>
+                            </>
+                        )}
+
 						{submission.info && Object.keys(submission.info).length > 0 && (
-							<>
-								<Separator className="my-4" />
-								<div className="space-y-2">
-									<h3 className="font-semibold tracking-tight">Judge Info</h3>
-									<pre className="p-4 bg-muted rounded-md text-xs overflow-auto">
-										{JSON.stringify(submission.info, null, 2)}
-									</pre>
-									<p className="text-xs text-muted-foreground">This is the raw JSON output from the final step of the judging process.</p>
-								</div>
-							</>
+							 <>
+                                <Separator className="my-4" />
+                                <div className="space-y-2">
+                                    <h3 className="font-semibold tracking-tight">Judge Info (JSON)</h3>
+                                    <pre className="p-4 bg-muted rounded-md text-xs overflow-auto">
+                                        {JSON.stringify(submission.info, null, 2)}
+                                    </pre>
+                                    <p className="text-xs text-muted-foreground">This is the raw JSON output from the final step of the judging process.</p>
+                                </div>
+                             </>
 						)}
 
 						<Separator className="my-4" />
