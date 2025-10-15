@@ -82,6 +82,9 @@ function UserList() {
                                         {user.banned_until && new Date(user.banned_until) > new Date() && (
                                             <Badge variant="destructive">Banned</Badge>
                                         )}
+                                        {user.disable_rank && (
+                                            <Badge variant="secondary">Unranked</Badge>
+                                        )}
                                     </TableCell>
                                     <TableCell>{user.nickname}</TableCell>
                                     <TableCell className="text-right">
@@ -201,9 +204,14 @@ function UserDetails({ userId }: { userId: string }) {
                                 <CardTitle className="text-2xl">{user?.nickname}</CardTitle>
                                 <CardDescription>@{user?.username} ({user?.id})</CardDescription>
                              </div>
-                             {user?.banned_until && new Date(user.banned_until) > new Date() && (
-                                <Badge variant="destructive" className="text-base">BANNED</Badge>
-                             )}
+                             <div className="flex items-center gap-2">
+                                {user?.banned_until && new Date(user.banned_until) > new Date() && (
+                                    <Badge variant="destructive" className="text-base">BANNED</Badge>
+                                )}
+                                {user?.disable_rank && (
+                                    <Badge variant="secondary" className="text-base">UNRANKED</Badge>
+                                )}
+                             </div>
                         </div>
                         {user?.banned_until && new Date(user.banned_until) > new Date() && (
                              <div className="mt-2 border-l-4 border-destructive pl-4">

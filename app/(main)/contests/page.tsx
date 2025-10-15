@@ -23,6 +23,7 @@ import { AnnouncementManager } from '@/components/admin/announcement-manager';
 import { useToast } from '@/hooks/use-toast';
 import { DragDropContext, Draggable, DropResult } from 'react-beautiful-dnd';
 import { StrictModeDroppable } from '@/components/shared/strict-mode-droppable';
+import { cn } from '@/lib/utils';
 
 const fetcher = (url: string) => api.get(url).then(res => res.data.data);
 
@@ -123,6 +124,8 @@ function ContestLeaderboard({ contestId }: { contestId: string }) {
 
     if (isLoading || !contest) return <Skeleton className="h-64 w-full" />;
     if (!leaderboard || leaderboard.length === 0) return <p className="text-muted-foreground text-center py-8">No scores recorded yet.</p>;
+    
+    let visibleRank = 0;
 
     return (
         <Card>
@@ -137,14 +140,22 @@ function ContestLeaderboard({ contestId }: { contestId: string }) {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {leaderboard.map((entry, index) => (
-                            <TableRow key={entry.user_id}>
-                                <TableCell>{index + 1}</TableCell>
-                                <TableCell><Link href={`/users?id=${entry.user_id}`} className="hover:underline">{entry.nickname}</Link></TableCell>
-                                {contest.problem_ids.map(pid => <TableCell key={pid} className="text-center">{entry.problem_scores[pid] ?? '–'}</TableCell>)}
-                                <TableCell className="text-right font-bold">{entry.total_score}</TableCell>
-                            </TableRow>
-                        ))}
+                        {leaderboard.map((entry) => {
+                            const isRankDisabled = entry.disable_rank;
+                            if (!isRankDisabled) {
+                                visibleRank++;
+                            }
+                            const displayRank = isRankDisabled ? '-' : visibleRank;
+                            
+                            return (
+                                <TableRow key={entry.user_id} className={cn(isRankDisabled && "text-muted-foreground")}>
+                                    <TableCell>{displayRank}</TableCell>
+                                    <TableCell><Link href={`/users?id=${entry.user_id}`} className="hover:underline">{entry.nickname}</Link></TableCell>
+                                    {contest.problem_ids.map(pid => <TableCell key={pid} className="text-center">{entry.problem_scores[pid] ?? '–'}</TableCell>)}
+                                    <TableCell className="text-right font-bold">{entry.total_score}</TableCell>
+                                </TableRow>
+                            );
+                        })}
                     </TableBody>
                 </Table>
             </CardContent>

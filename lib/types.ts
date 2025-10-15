@@ -114,6 +114,7 @@ export interface LeaderboardEntry {
   username: string;
   nickname: string;
   avatar_url: string;
+  disable_rank: boolean;
   total_score: number;
   problem_scores: Record<string, number>;
 }
