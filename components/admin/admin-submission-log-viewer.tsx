@@ -169,7 +169,7 @@ export function AdminSubmissionLogViewer({ submission, problem, onStatusUpdate }
             <CardHeader><CardTitle>Live Log</CardTitle><CardDescription>Real-time output from the judge containers.</CardDescription></CardHeader>
             <CardContent className="flex flex-col flex-1">
                 <Tabs value={selectedContainerId ?? ""} onValueChange={setSelectedContainerId} className="w-full flex flex-col flex-1">
-                    <TabsList className="grid w-full" style={{gridTemplateColumns: `repeat(${submission.containers.length}, minmax(0, 1fr))`}}>
+                    <TabsList className="grid h-auto w-full gap-1" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' }}>
                         {submission.containers.map((c, i) => (
                             <TabsTrigger key={c.id} value={c.id}>
                                 {workflow[i]?.name || `Step ${i + 1}`}
