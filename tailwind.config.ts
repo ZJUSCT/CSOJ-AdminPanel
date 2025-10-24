@@ -1,5 +1,20 @@
 import type { Config } from "tailwindcss"
 
+const TAG_COLORS = [
+  "bg-blue-100", "text-blue-800", "dark:bg-blue-900", "dark:text-blue-200",
+  "bg-green-100", "text-green-800", "dark:bg-green-900", "dark:text-green-200",
+  "bg-red-100", "text-red-800", "dark:bg-red-900", "dark:text-red-200",
+  "bg-purple-100", "text-purple-800", "dark:bg-purple-900", "dark:text-purple-200",
+  "bg-pink-100", "text-pink-800", "dark:bg-pink-900", "dark:text-pink-200",
+  "bg-indigo-100", "text-indigo-800", "dark:bg-indigo-900", "dark:text-indigo-200",
+  "bg-cyan-100", "text-cyan-800", "dark:bg-cyan-900", "dark:text-cyan-200",
+  "bg-orange-100", "text-orange-800", "dark:bg-orange-900", "dark:text-orange-200",
+  "bg-teal-100", "text-teal-800", "dark:bg-teal-900", "dark:text-teal-200",
+  "bg-amber-100", "text-amber-800", "dark:bg-amber-900", "dark:text-amber-200",
+];
+const colorSafelist = TAG_COLORS.flatMap(group => group.split(" "));
+
+
 const config = {
   darkMode: ["class"],
   content: [
@@ -8,6 +23,9 @@ const config = {
     './app/**/*.{ts,tsx}',
     './src/**/*.{ts,tsx}',
 	],
+  safelist: [
+    ...colorSafelist,
+  ],
   prefix: "",
   theme: {
   	container: {
@@ -93,7 +111,7 @@ const config = {
   			'accordion-up': 'accordion-up 0.2s ease-out'
   		},
 		// Tight Markdown Theme
-		typography: ({ theme }: { theme: any }) => ({ 
+		typography: ({ theme }: { theme: any }) => ({
 			tight: {
 				css: {
 					'--tw-prose-body': {
