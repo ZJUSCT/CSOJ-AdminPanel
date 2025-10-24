@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { Calendar, Clock, Trophy, BarChart3, List, MoreVertical, Edit, Trash, PlusCircle, Files, Megaphone, Save, X, GripVertical } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from '@/components/ui/table';
 import EchartsTrendChart from '@/components/admin/echarts-trend-chart';
 import { Label } from '@/components/ui/label';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -24,6 +24,7 @@ import { useToast } from '@/hooks/use-toast';
 import { DragDropContext, Draggable, DropResult } from 'react-beautiful-dnd';
 import { StrictModeDroppable } from '@/components/shared/strict-mode-droppable';
 import { cn } from '@/lib/utils';
+import { Badge } from "@/components/ui/badge";
 
 const fetcher = (url: string) => api.get(url).then(res => res.data.data);
 
@@ -88,7 +89,7 @@ function ContestTrendView({ contest }: { contest: Contest }) {
     const { data: leaderboardData, isLoading: leaderboardLoading } = useSWR<LeaderboardEntry[]>(`/contests/${contest.id}/leaderboard`, fetcher);
     const { data: trendData, isLoading: trendLoading } = useSWR<TrendEntry[]>(`/contests/${contest.id}/trend?maxnum=${numUsers}`, fetcher, { refreshInterval: 30000 });
     const maxUsers = leaderboardData?.length ?? 100;
-    
+
     if (leaderboardLoading) return <Skeleton className="h-[550px] w-full" />;
 
     return (
@@ -103,13 +104,13 @@ function ContestTrendView({ contest }: { contest: Contest }) {
                     <input id="user-slider" type="range" min="1" max={maxUsers} value={numUsers} onChange={(e) => setNumUsers(Number(e.target.value))} className="w-full h-2 bg-primary/20 rounded-lg appearance-none cursor-pointer dark:bg-primary/30" />
                 </div>
                 <div className="h-[500px]">
-                    {trendLoading ? <Skeleton className="h-full w-full" /> : 
-                     trendData ? 
-                        <EchartsTrendChart 
+                    {trendLoading ? <Skeleton className="h-full w-full" /> :
+                     trendData ?
+                        <EchartsTrendChart
                             trendData={trendData}
                             contestStartTime={contest.starttime}
                             contestEndTime={contest.endtime}
-                        /> : 
+                        /> :
                         <div className="flex items-center justify-center h-full text-center text-muted-foreground">Could not load trend data.</div>}
                 </div>
             </CardContent>
@@ -118,13 +119,46 @@ function ContestTrendView({ contest }: { contest: Contest }) {
 }
 
 
-function ContestLeaderboard({ contestId }: { contestId: string }) {
+function ContestLeaderboard({ contestId }: { contestId: string } ) {
     const { data: contest } = useSWR<Contest>(`/contests/${contestId}`, fetcher);
-    const { data: leaderboard, isLoading } = useSWR<LeaderboardEntry[]>(`/contests/${contestId}/leaderboard`, fetcher, { refreshInterval: 15000 });
+    // State for tag filtering
+    const [selectedTags, setSelectedTags] = useState<string[]>([]);
+
+    // Fetch unfiltered leaderboard only to derive available tags
+    const { data: leaderboardUnfiltered, isLoading: isLoadingUnfiltered } = useSWR<LeaderboardEntry[]>(`/contests/${contestId}/leaderboard`, fetcher, { refreshInterval: 60000 }); // Slower refresh for tag list
+
+    const availableTags = useMemo(() => {
+        if (!leaderboardUnfiltered) return [];
+        const allTags = new Set<string>();
+        leaderboardUnfiltered.forEach(entry => {
+            if (entry.tags) {
+                entry.tags.split(',').forEach(tag => {
+                    const trimmedTag = tag.trim();
+                    if (trimmedTag) allTags.add(trimmedTag);
+                });
+            }
+        });
+        return Array.from(allTags).sort().map(tag => ({ value: tag, label: tag }));
+    }, [leaderboardUnfiltered]);
+
+    // Toggle tag selection
+    const toggleTag = (tagValue: string) => {
+        setSelectedTags(prev =>
+            prev.includes(tagValue)
+                ? prev.filter(t => t !== tagValue)
+                : [...prev, tagValue]
+        );
+    };
+
+
+    // Fetch leaderboard data with tag filter applied
+    const tagsQuery = selectedTags.join(',');
+    const { data: leaderboard, isLoading } = useSWR<LeaderboardEntry[]>(`/contests/${contestId}/leaderboard?tags=${tagsQuery}`, fetcher, { refreshInterval: 15000 });
+
 
     if (isLoading || !contest) return <Skeleton className="h-64 w-full" />;
-    if (!leaderboard || leaderboard.length === 0) return <p className="text-muted-foreground text-center py-8">No scores recorded yet.</p>;
-    
+    if (!leaderboard || leaderboard.length === 0 && selectedTags.length === 0) return <p className="text-muted-foreground text-center py-8">No scores recorded yet.</p>;
+
     let rankToDisplay = 0;
     let realRankCounter = 0;
     let previousScore = -Infinity;
@@ -133,7 +167,26 @@ function ContestLeaderboard({ contestId }: { contestId: string }) {
         <Card>
             <CardHeader><CardTitle>Leaderboard</CardTitle></CardHeader>
             <CardContent>
+                <div className="mb-4 flex items-center gap-2">
+                    <Label className="shrink-0 font-semibold">Filter by Tags:</Label>
+                    {isLoadingUnfiltered ? <Skeleton className="h-6 w-32" /> : (
+                        <div className="flex flex-wrap gap-2">
+                            {availableTags.length === 0 && <span className="text-sm text-muted-foreground">No tags found on leaderboard.</span>}
+                            {availableTags.map(tag => (
+                                <Badge
+                                    key={tag.value}
+                                    variant={selectedTags.includes(tag.value) ? "default" : "outline"}
+                                    onClick={() => toggleTag(tag.value)}
+                                    className="cursor-pointer"
+                                >
+                                    {tag.label}
+                                </Badge>
+                            ))}
+                        </div>
+                    )}
+                </div>
                 <Table>
+                    {leaderboard.length === 0 && <TableCaption className="mt-8">No users found with the selected tags.</TableCaption>}
                     <TableHeader>
                         <TableRow>
                             <TableHead>Rank</TableHead><TableHead>User</TableHead>
@@ -155,11 +208,18 @@ function ContestLeaderboard({ contestId }: { contestId: string }) {
                                 displayRank = rankToDisplay;
                                 previousScore = entry.total_score;
                             }
-                            
+
                             return (
                                 <TableRow key={entry.user_id} className={cn(isRankDisabled && "text-muted-foreground")}>
                                     <TableCell>{displayRank}</TableCell>
-                                    <TableCell><Link href={`/users?id=${entry.user_id}`} className="hover:underline">{entry.nickname}</Link></TableCell>
+                                    <TableCell>
+                                        <div className="flex flex-col">
+                                            <Link href={`/users?id=${entry.user_id}`} className="hover:underline font-medium">{entry.nickname}</Link>
+                                            <div className="flex flex-wrap gap-1 mt-1">
+                                                {entry.tags && entry.tags.split(',').map(tag => tag.trim() ? <Badge key={tag} variant="secondary" className="text-xs">{tag.trim()}</Badge> : null)}
+                                            </div>
+                                        </div>
+                                    </TableCell>
                                     {contest.problem_ids.map(pid => <TableCell key={pid} className="text-center">{entry.problem_scores[pid] ?? '–'}</TableCell>)}
                                     <TableCell className="text-right font-bold">{entry.total_score}</TableCell>
                                 </TableRow>
@@ -293,7 +353,7 @@ function ContestDetailView({ contestId, view }: { contestId: string, view: strin
         globalMutate(`/problems`);
         mutateContest();
     };
-    
+
     const onContestDelete = () => {
         globalMutate('/contests');
         router.push('/contests');

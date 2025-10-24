@@ -22,6 +22,7 @@ const createUserSchema = z.object({
 	nickname: z.string().min(1, "Nickname is required"),
 	password: z.string().min(6, "Password must be at least 6 characters"),
 	disable_rank: z.boolean().default(false).optional(),
+	tags: z.string().optional(),
 });
 
 export function CreateUserDialog({ onUserCreated }: { onUserCreated: () => void }) {
@@ -29,7 +30,7 @@ export function CreateUserDialog({ onUserCreated }: { onUserCreated: () => void 
 	const { toast } = useToast();
 	const form = useForm<z.infer<typeof createUserSchema>>({ resolver: zodResolver(createUserSchema), defaultValues: { username: '', nickname: '', password: '', disable_rank: false } });
 
-	const onSubmit = async (values: z.infer<typeof createUserSchema>) => {
+	const onSubmit = async (values: z.infer<typeof createUserSchema> & { tags?: string }) => {
 		try {
 			await api.post('/users', values);
 			toast({ title: "User Created", description: `User ${values.username} has been created.` });
@@ -51,6 +52,7 @@ export function CreateUserDialog({ onUserCreated }: { onUserCreated: () => void 
 						<FormField control={form.control} name="username" render={({ field }) => (<FormItem><FormLabel>Username</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
 						<FormField control={form.control} name="nickname" render={({ field }) => (<FormItem><FormLabel>Nickname</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
 						<FormField control={form.control} name="password" render={({ field }) => (<FormItem><FormLabel>Password</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>)} />
+						<FormField control={form.control} name="tags" render={({ field }) => (<FormItem><FormLabel>Tags</FormLabel><FormControl><Input placeholder="tag1,tag2,tag3" {...field} /></FormControl><FormMessage /></FormItem>)} />
 						<FormField
 							control={form.control}
 							name="disable_rank"
@@ -83,6 +85,7 @@ const editUserSchema = z.object({
     ban_reason: z.string().optional(),
     banned_until: z.string().optional(),
     disable_rank: z.boolean().optional(),
+    tags: z.string().optional(),
 });
 export function EditUserDialog({ user, onUserUpdated, trigger }: { user: User, onUserUpdated: () => void, trigger: React.ReactNode }) {
 	const [open, setOpen] = useState(false);
@@ -95,6 +98,7 @@ export function EditUserDialog({ user, onUserUpdated, trigger }: { user: User, o
             ban_reason: user.ban_reason || '',
             banned_until: user.banned_until ? format(new Date(user.banned_until), "yyyy-MM-dd'T'HH:mm") : '',
             disable_rank: user.disable_rank,
+            tags: user.tags || '',
         },
 	});
 
@@ -106,6 +110,7 @@ export function EditUserDialog({ user, onUserUpdated, trigger }: { user: User, o
                 ban_reason: user.ban_reason || '',
                 banned_until: user.banned_until ? format(new Date(user.banned_until), "yyyy-MM-dd'T'HH:mm") : '',
                 disable_rank: user.disable_rank,
+                tags: user.tags || '',
             });
         }
     }, [open, user, form]);
@@ -116,6 +121,7 @@ export function EditUserDialog({ user, onUserUpdated, trigger }: { user: User, o
             signature: values.signature,
             ban_reason: values.ban_reason,
             disable_rank: values.disable_rank,
+            tags: values.tags,
         };
         // Handle time: convert local time to ISO string for backend, or send empty string to unban
         if (values.banned_until) {
@@ -143,6 +149,7 @@ export function EditUserDialog({ user, onUserUpdated, trigger }: { user: User, o
 					<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
 						<FormField control={form.control} name="nickname" render={({ field }) => (<FormItem><FormLabel>Nickname</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
 						<FormField control={form.control} name="signature" render={({ field }) => (<FormItem><FormLabel>Signature</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+						<FormField control={form.control} name="tags" render={({ field }) => (<FormItem><FormLabel>Tags</FormLabel><FormControl><Input placeholder="tag1,tag2" {...field} /></FormControl><FormMessage /></FormItem>)} />
 						<FormField
 							control={form.control}
 							name="disable_rank"

@@ -70,6 +70,7 @@ function UserList() {
                                 <TableHead>ID</TableHead>
                                 <TableHead>Username</TableHead>
                                 <TableHead>Nickname</TableHead>
+                                <TableHead>Tags</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -87,6 +88,13 @@ function UserList() {
                                         )}
                                     </TableCell>
                                     <TableCell>{user.nickname}</TableCell>
+                                    <TableCell>
+                                        {user.tags && user.tags.split(',').map(tag => tag.trim() ? (
+                                            <Badge key={tag} variant="secondary" className="mr-1 mb-1">
+                                                {tag.trim()}
+                                            </Badge>
+                                        ) : null)}
+                                    </TableCell>
                                     <TableCell className="text-right">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
@@ -97,17 +105,17 @@ function UserList() {
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
                                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                <EditUserDialog 
-                                                    user={user} 
-                                                    onUserUpdated={mutate} 
-                                                    trigger={<DropdownMenuItem onSelect={(e) => e.preventDefault()}>Edit Profile</DropdownMenuItem>} 
+                                                <EditUserDialog
+                                                    user={user}
+                                                    onUserUpdated={mutate}
+                                                    trigger={<DropdownMenuItem onSelect={(e) => e.preventDefault()}>Edit Profile</DropdownMenuItem>}
                                                 />
-                                                <ResetPasswordDialog 
-                                                    userId={user.id} 
-                                                    trigger={<DropdownMenuItem onSelect={(e) => e.preventDefault()}>Reset Password</DropdownMenuItem>} 
+                                                <ResetPasswordDialog
+                                                    userId={user.id}
+                                                    trigger={<DropdownMenuItem onSelect={(e) => e.preventDefault()}>Reset Password</DropdownMenuItem>}
                                                 />
-                                                <RegisterContestDialog 
-                                                    userId={user.id} 
+                                                <RegisterContestDialog
+                                                    userId={user.id}
                                                     trigger={<DropdownMenuItem onSelect={(e) => e.preventDefault()}>Register for Contest</DropdownMenuItem>}
                                                 />
                                                 <DropdownMenuSeparator />
@@ -219,6 +227,13 @@ function UserDetails({ userId }: { userId: string }) {
                                  <p className="text-sm font-semibold">Banned Until: <span className="font-normal">{format(new Date(user.banned_until), 'Pp')}</span></p>
                              </div>
                          )}
+                        {user?.tags && (
+                            <div className="mt-2 flex flex-wrap gap-1">
+                                {user.tags.split(',').map(tag => tag.trim() ? (
+                                    <Badge key={tag} variant="outline">{tag.trim()}</Badge>
+                                ) : null)}
+                            </div>
+                        )}
                     </div>
                 </CardHeader>
             </Card>
