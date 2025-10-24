@@ -23,7 +23,7 @@ import { AnnouncementManager } from '@/components/admin/announcement-manager';
 import { useToast } from '@/hooks/use-toast';
 import { DragDropContext, Draggable, DropResult } from 'react-beautiful-dnd';
 import { StrictModeDroppable } from '@/components/shared/strict-mode-droppable';
-import { cn } from '@/lib/utils';
+import { cn, getTagColorClasses } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
 const fetcher = (url: string) => api.get(url).then(res => res.data.data);
@@ -213,10 +213,24 @@ function ContestLeaderboard({ contestId }: { contestId: string } ) {
                                 <TableRow key={entry.user_id} className={cn(isRankDisabled && "text-muted-foreground")}>
                                     <TableCell>{displayRank}</TableCell>
                                     <TableCell>
-                                        <div className="flex flex-row items-center flex-wrap">
+                                        <div className="flex flex-row items-center flex-wrap gap-3">
                                             <Link href={`/users?id=${entry.user_id}`} className="hover:underline font-medium">{entry.nickname}</Link>
-                                            <div className="flex flex-wrap gap-1 mt-1">
-                                                {entry.tags && entry.tags.split(',').map(tag => tag.trim() ? <Badge key={tag} variant="secondary" className="text-xs">{tag.trim()}</Badge> : null)}
+                                            <div className="flex flex-wrap gap-1">
+                                                {entry.tags && entry.tags.split(',').map(tag => {
+                                                    const trimmedTag = tag.trim();
+                                                    if (!trimmedTag) return null;
+                                                    return (
+                                                        <Badge 
+                                                            key={trimmedTag} 
+                                                            className={cn(
+                                                                "text-xs border-transparent",
+                                                                getTagColorClasses(trimmedTag)
+                                                            )}
+                                                        >
+                                                            {trimmedTag}
+                                                        </Badge>
+                                                    );
+                                                })}
                                             </div>
                                         </div>
                                     </TableCell>
