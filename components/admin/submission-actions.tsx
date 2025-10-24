@@ -92,9 +92,7 @@ export function UpdateSubmissionDialog({
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-                {children}
-            </DialogTrigger>
+            {children}
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Manual Submission Override</DialogTitle>
