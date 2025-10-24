@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { UpdateSubmissionDialog } from "./submission-actions";
-import { DialogTrigger } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface SubmissionTableActionsProps {
@@ -43,18 +42,16 @@ export function SubmissionTableActions({ submission, mutate }: SubmissionTableAc
     return (
         <TooltipProvider>
             <div className="flex items-center justify-end gap-0.5">
-                <UpdateSubmissionDialog submission={submission} onSubmissionUpdated={mutate}>
-                    <Tooltip>
+                <Tooltip>
+                    <UpdateSubmissionDialog submission={submission} onSubmissionUpdated={mutate}>
                         <TooltipTrigger asChild>
-                            <DialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                    <Edit className="h-4 w-4" />
-                                </Button>
-                            </DialogTrigger>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <Edit className="h-4 w-4" />
+                            </Button>
                         </TooltipTrigger>
-                        <TooltipContent><p>Manual Override</p></TooltipContent>
-                    </Tooltip>
-                </UpdateSubmissionDialog>
+                    </UpdateSubmissionDialog>
+                    <TooltipContent><p>Manual Override</p></TooltipContent>
+                </Tooltip>
 
                 <Tooltip>
                     <TooltipTrigger asChild>
