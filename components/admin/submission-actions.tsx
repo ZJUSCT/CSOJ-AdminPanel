@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 const updateSubmissionSchema = z.object({
     status: z.enum(["Queued", "Running", "Success", "Failed"]).optional(),
     score: z.coerce.number().int().optional(),
+    performance: z.coerce.number().optional(),
     info: z.string().optional().refine((val) => {
         if (val === "" || val === undefined) return true;
         try {
@@ -45,6 +46,7 @@ export function UpdateSubmissionDialog({
         defaultValues: {
             status: submission.status,
             score: submission.score,
+            performance: submission.performance,
             info: JSON.stringify(submission.info, null, 2),
         }
     });
@@ -53,6 +55,7 @@ export function UpdateSubmissionDialog({
         const payload: any = {};
         if (values.status) payload.status = values.status;
         if (values.score !== undefined) payload.score = values.score;
+        if (values.performance !== undefined) payload.performance = values.performance;
 
         if (values.info) {
              try {
@@ -79,12 +82,13 @@ export function UpdateSubmissionDialog({
             toast({ variant: "destructive", title: "Update Failed", description: err.response?.data?.message });
         }
     }
-    
+
     React.useEffect(() => {
         if (open) {
             form.reset({
                 status: submission.status,
                 score: submission.score,
+                performance: submission.performance,
                 info: JSON.stringify(submission.info, null, 2),
             });
         }
@@ -127,6 +131,17 @@ export function UpdateSubmissionDialog({
                                 <FormItem>
                                     <FormLabel>Score</FormLabel>
                                     <FormControl><Input type="number" {...field} /></FormControl>
+                                </FormItem>
+                            )} />
+
+                        <FormField
+                            control={form.control}
+                            name="performance"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Performance</FormLabel>
+                                    <FormControl><Input type="number" step="any" {...field} /></FormControl> {/* Use step="any" for floats */}
+                                    <FormMessage />
                                 </FormItem>
                             )} />
 
