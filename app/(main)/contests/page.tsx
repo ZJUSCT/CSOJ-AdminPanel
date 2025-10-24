@@ -221,7 +221,8 @@ function ContestLeaderboard({ contestId }: { contestId: string } ) {
                                                     if (!trimmedTag) return null;
                                                     return (
                                                         <Badge 
-                                                            key={trimmedTag} 
+                                                            key={trimmedTag}
+                                                            variant="flat"
                                                             className={cn(
                                                                 "text-xs border-transparent",
                                                                 getTagColorClasses(trimmedTag)
