@@ -197,6 +197,9 @@ function SubmissionDetails({ submissionId }: { submissionId: string }) {
 									<Button variant="outline" onClick={() => handleAction('validity', { is_valid: true })}><CheckCircle /> Mark Valid</Button>
 								)}
 								<Button variant="destructive" onClick={() => { if (confirm('Are you sure? This will delete the submission and its content permanently.')) handleAction('delete'); }}><Trash2 /> Delete</Button>
+								<UpdateSubmissionDialog submission={submission} onSubmissionUpdated={mutate}>
+									<Button variant="outline" className="w-full"><Edit /> Manual Override</Button>
+								</UpdateSubmissionDialog>
 							</div>
 						</div>
 					</CardContent>
