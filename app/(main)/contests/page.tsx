@@ -213,7 +213,7 @@ function ContestLeaderboard({ contestId }: { contestId: string } ) {
                                 <TableRow key={entry.user_id} className={cn(isRankDisabled && "text-muted-foreground")}>
                                     <TableCell>{displayRank}</TableCell>
                                     <TableCell>
-                                        <div className="flex flex-col">
+                                        <div className="flex flex-row items-center flex-wrap">
                                             <Link href={`/users?id=${entry.user_id}`} className="hover:underline font-medium">{entry.nickname}</Link>
                                             <div className="flex flex-wrap gap-1 mt-1">
                                                 {entry.tags && entry.tags.split(',').map(tag => tag.trim() ? <Badge key={tag} variant="secondary" className="text-xs">{tag.trim()}</Badge> : null)}
