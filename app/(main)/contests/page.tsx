@@ -153,11 +153,11 @@ function ContestLeaderboard({ contestId }: { contestId: string } ) {
 
     // Fetch leaderboard data with tag filter applied
     const tagsQuery = selectedTags.join(',');
-    const { data: leaderboard, isLoading } = useSWR<LeaderboardEntry[]>(`/contests/${contestId}/leaderboard?tags=${tagsQuery}`, fetcher, { refreshInterval: 15000 });
-
+    const { data: leaderboardData, isLoading } = useSWR<LeaderboardEntry[]>(`/contests/${contestId}/leaderboard?tags=${tagsQuery}`, fetcher, { refreshInterval: 15000 });
+    const leaderboard = leaderboardData ?? []; // Ensure leaderboard is always an array
 
     if (isLoading || !contest) return <Skeleton className="h-64 w-full" />;
-    if (!leaderboard || leaderboard.length === 0 && selectedTags.length === 0) return <p className="text-muted-foreground text-center py-8">No scores recorded yet.</p>;
+    if (leaderboard.length === 0 && selectedTags.length === 0) return <p className="text-muted-foreground text-center py-8">No scores recorded yet.</p>;
 
     let rankToDisplay = 0;
     let realRankCounter = 0;
