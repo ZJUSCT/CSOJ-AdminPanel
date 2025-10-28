@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
-import { Calendar, Clock, Trophy, BarChart3, List, MoreVertical, Edit, Trash, PlusCircle, Files, Megaphone, Save, X, GripVertical } from 'lucide-react';
+import { Calendar, Clock, Trophy, BarChart3, List, MoreVertical, Edit, Trash, PlusCircle, Files, Megaphone, Save, X, GripVertical, Download, Loader2 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from '@/components/ui/table';
 import EchartsTrendChart from '@/components/admin/echarts-trend-chart';
@@ -25,6 +25,7 @@ import { DragDropContext, Draggable, DropResult } from 'react-beautiful-dnd';
 import { StrictModeDroppable } from '@/components/shared/strict-mode-droppable';
 import { cn, getTagColorClasses } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const fetcher = (url: string) => api.get(url).then(res => res.data.data);
 
@@ -123,6 +124,8 @@ function ContestLeaderboard({ contestId }: { contestId: string } ) {
     const { data: contest } = useSWR<Contest>(`/contests/${contestId}`, fetcher);
     // State for tag filtering
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
+    const [downloadingUserId, setDownloadingUserId] = useState<string | null>(null); // State for download button
+    const { toast } = useToast(); // Toast hook
 
     // Fetch unfiltered leaderboard only to derive available tags
     const { data: leaderboardUnfiltered, isLoading: isLoadingUnfiltered } = useSWR<LeaderboardEntry[]>(`/contests/${contestId}/leaderboard`, fetcher, { refreshInterval: 60000 }); // Slower refresh for tag list
@@ -150,6 +153,55 @@ function ContestLeaderboard({ contestId }: { contestId: string } ) {
         );
     };
 
+    // Download handler
+    const handleDownloadSolutions = async (userId: string, nickname: string, username: string) => {
+        setDownloadingUserId(userId);
+        toast({ title: `Preparing download for ${nickname}...` });
+        try {
+            const response = await api.get(`/users/${userId}/download_solutions/${contestId}`, {
+                responseType: 'blob',
+            });
+
+            const blob = new Blob([response.data], { type: response.headers['content-type'] });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            // Filename format from backend: {nickname}-{username}-{contest_id}.zip
+            const contentDisposition = response.headers['content-disposition'];
+            let filename = `${nickname}-${username}-${contestId}.zip`; // Default filename
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename="?(.+)"?/i);
+                if (filenameMatch && filenameMatch.length > 1) {
+                    filename = filenameMatch[1];
+                }
+            }
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            toast({ title: 'Download Started', description: `Started downloading solutions for ${nickname}.` });
+        } catch (err: any) {
+            let description = 'Could not download solutions.';
+            if (err.response?.data instanceof Blob) {
+                 try {
+                    const errorText = await err.response.data.text();
+                    const errorJson = JSON.parse(errorText);
+                    description = errorJson.message || description;
+                 } catch (e) {}
+            } else if (err.response?.data?.message) {
+                 description = err.response.data.message;
+            }
+            toast({
+                variant: 'destructive',
+                title: 'Download Failed',
+                description: description,
+            });
+        } finally {
+            setDownloadingUserId(null);
+        }
+    };
 
     // Fetch leaderboard data with tag filter applied
     const tagsQuery = selectedTags.join(',');
@@ -192,6 +244,7 @@ function ContestLeaderboard({ contestId }: { contestId: string } ) {
                             <TableHead>Rank</TableHead><TableHead>User</TableHead>
                             {contest.problem_ids.map((id, index) => <TableHead key={id} className="text-center"><Link href={`/problems?id=${id}`} className="hover:underline">P{index + 1}</Link></TableHead>)}
                             <TableHead className="text-right">Total Score</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -208,6 +261,7 @@ function ContestLeaderboard({ contestId }: { contestId: string } ) {
                                 displayRank = rankToDisplay;
                                 previousScore = entry.total_score;
                             }
+                            const isDownloading = downloadingUserId === entry.user_id;
 
                             return (
                                 <TableRow key={entry.user_id} className={cn(isRankDisabled && "text-muted-foreground")}>
@@ -220,7 +274,7 @@ function ContestLeaderboard({ contestId }: { contestId: string } ) {
                                                     const trimmedTag = tag.trim();
                                                     if (!trimmedTag) return null;
                                                     return (
-                                                        <Badge 
+                                                        <Badge
                                                             key={trimmedTag}
                                                             variant="flat"
                                                             className={cn(
@@ -237,6 +291,26 @@ function ContestLeaderboard({ contestId }: { contestId: string } ) {
                                     </TableCell>
                                     {contest.problem_ids.map(pid => <TableCell key={pid} className="text-center">{entry.problem_scores[pid] ?? '–'}</TableCell>)}
                                     <TableCell className="text-right font-bold">{entry.total_score}</TableCell>
+                                     <TableCell className="text-right">
+                                         <TooltipProvider>
+                                             <Tooltip>
+                                                 <TooltipTrigger asChild>
+                                                     <Button
+                                                         variant="outline"
+                                                         size="icon"
+                                                         className="h-8 w-8"
+                                                         onClick={() => handleDownloadSolutions(entry.user_id, entry.nickname, entry.username)}
+                                                         disabled={isDownloading}
+                                                     >
+                                                         {isDownloading ? <Loader2 className="animate-spin" /> : <Download />}
+                                                     </Button>
+                                                 </TooltipTrigger>
+                                                 <TooltipContent>
+                                                     <p>Download {entry.nickname}'s Solutions</p>
+                                                 </TooltipContent>
+                                             </Tooltip>
+                                         </TooltipProvider>
+                                    </TableCell>
                                 </TableRow>
                             );
                         })}
